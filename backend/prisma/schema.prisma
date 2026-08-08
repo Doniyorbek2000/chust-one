@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  firstName     String
+  lastName      String
+  phoneNumber   String         @unique
+  email         String?        @unique
+  passwordHash  String
+  role          String         @default("STUDENT")
+  avatarUrl     String?
+  city          String?
+  age           Int?
+  address       String?
+  isVerified    Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  enrollments   Enrollment[]
+  payments      Payment[]
+  favorites     Favorite[]
+  notifications Notification[]
+}
+
+model CourseCategory {
+  id          String   @id @default(uuid())
+  nameUz      String
+  nameRu      String
+  nameEn      String
+  slug        String   @unique
+  iconName    String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  courses     Course[]
+}
+
+model Course {
+  id               String         @id @default(uuid())
+  categoryId       String
+  category         CourseCategory @relation(fields: [categoryId], references: [id])
+  titleUz          String
+  titleRu          String
+  titleEn          String
+  subtitleUz       String?
+  subtitleRu       String?
+  subtitleEn       String?
+  targetAudienceUz String?
+  descriptionUz    String
+  descriptionRu    String
+  descriptionEn    String
+  coverImage       String
+  price            Float
+  discountPrice    Float?
+  durationMonths   Int            @default(2)
+  lessonCount      Int            @default(24)
+  lessonsPerWeek   Int            @default(3)
+  scheduleInfo     String         @default("Dush-Sesh-Chor / Ertalabki va Kechki")
+  level            String         @default("Zero dan Pro gacha")
+  format           String         @default("Oflayn / Amaliy")
+  isPopular        Boolean        @default(false)
+  isKompyuterKids  Boolean        @default(false)
+  kidsTargetGrades String?
+  kidsDuration     String?
+  rating           Float          @default(5.0)
+  studentCount     Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  modules          CourseModule[]
+  enrollments      Enrollment[]
+  favorites        Favorite[]
+}
+
+model CourseModule {
+  id        String        @id @default(uuid())
+  courseId  String
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  titleUz   String
+  titleRu   String
+  titleEn   String
+  sortOrder Int           @default(0)
+  topics    CourseTopic[]
+}
+
+model CourseTopic {
+  id        String       @id @default(uuid())
+  moduleId  String
+  module    CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  titleUz   String
+  titleRu   String
+  titleEn   String
+  icon      String?
+  sortOrder Int          @default(0)
+}
+
+model Teacher {
+  id              String   @id @default(uuid())
+  fullName        String
+  specialization  String
+  experienceYears Int
+  bio             String
+  avatarUrl       String
+  rating          Float    @default(5.0)
+  createdAt       DateTime @default(now())
+}
+
+model Branch {
+  id              String       @id @default(uuid())
+  nameUz          String
+  nameRu          String
+  nameEn          String
+  addressLandmark String
+  city            String
+  latitude        Float
+  longitude       Float
+  phonePrimary    String
+  telegramUser    String?
+  telegramContact String?
+  instagramUser   String?
+  workingHours    String
+  createdAt       DateTime     @default(now())
+  enrollments     Enrollment[]
+}
+
+model Enrollment {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  courseId       String
+  course         Course    @relation(fields: [courseId], references: [id])
+  branchId       String?
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+  preferredTime  String
+  applicantAge   Int?
+  address        String?
+  parentPhone    String?
+  comment        String?
+  referralSource String?
+  promoCode      String?
+  status         String    @default("NEW")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  payments       Payment[]
+}
+
+model Payment {
+  id           String     @id @default(uuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  amount       Float
+  method       String
+  status       String     @default("PENDING")
+  receiptUrl   String?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model News {
+  id         String   @id @default(uuid())
+  titleUz    String
+  titleRu    String
+  titleEn    String
+  contentUz  String
+  contentRu  String
+  contentEn  String
+  coverImage String
+  viewCount  Int      @default(0)
+  isFeatured Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Favorite {
+  userId    String
+  courseId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, courseId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String   @default("SYSTEM")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AppSetting {
+  id                      String   @id @default("1")
+  
+  // Onboarding Welcome Screen CMS fields
+  onboardingTitleUz       String   @default("Kelajagingizni biz bilan yarating!")
+  onboardingSubtitleUz    String   @default("Zamonaviy kasblarni o'rganing, ko'nikmalaringizni rivojlantiring va muvaffaqiyat sari qadam qo'ying.")
+  onboardingImageUrl      String   @default("https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80")
+  onboardingCtaTextUz     String   @default("Boshlash")
+  onboardingSecondaryUz   String   @default("Kirish")
+
+  heroTitleUz             String   @default("Bilim bilan kelajagingni yor!")
+  heroSubtitleUz          String   @default("Zamonaviy kasblarga ega bo'ling va orzularingizni amalga oshiring.")
+  heroBannerImage         String   @default("https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80")
+  heroCtaTextUz           String   @default("Kurslarni ko'rish")
+
+  locationTitleUz         String   @default("BIZNING YANGI MANZILIMIZ:")
+  buildingImageUrl        String   @default("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80")
+  addressLandmarkUz       String   @default("Book Kafee yonida, Ilhom Travel binosida.")
+  addressCityUz           String   @default("Manzil: Chust shahrida:")
+  mapImageUrl             String   @default("https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=600&q=80")
+  mapLocationUrl          String   @default("https://yandex.com/maps/?text=Chust+One+Academy")
+  mapLatitude             Float?
+  mapLongitude            Float?
+  contactHeaderUz         String   @default("Ro'yxatdan o'tish uchun:")
+
+  mainPhone               String   @default("+998 (99) 972 52 22")
+  telegramUser            String   @default("@Kompyuter_Kursi15")
+  telegramContact         String   @default("@Kayumkhadjayev")
+  instagramUser           String   @default("@Chust_One_Academy")
+
+  popupTitleUz            String   @default("Yangi Guruhlarga Qabul Ochildi!")
+  popupBodyUz             String   @default("Kompyuter savodxonligi va Kompyuter Kids 2 oylik kurslariga qabul davom etmoqda.")
+  popupImageUrl           String   @default("https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80")
+  isPopupActive           Boolean  @default(true)
+  isMaintenance           Boolean  @default(false)
+  minAppVersion           String   @default("1.0.0")
+  forceUpdate             Boolean  @default(false)
+  termsAndPrivacyUrl      String   @default("https://chustone.uz/privacy")
+  updatedAt               DateTime @updatedAt
+}

@@ -1,0 +1,61 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class StorageService {
+  static const String _keyToken = 'auth_token';
+  static const String _keyUser = 'auth_user';
+  static const String _keyThemeMode = 'theme_mode';
+  static const String _keyLocale = 'app_locale';
+
+  Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyToken, token);
+  }
+
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyToken);
+  }
+
+  Future<void> clearToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyToken);
+  }
+
+  Future<void> saveUser(Map<String, dynamic> user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUser, json.encode(user));
+  }
+
+  Future<Map<String, dynamic>?> getUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyUser);
+    if (raw == null) return null;
+    return json.decode(raw) as Map<String, dynamic>;
+  }
+
+  Future<void> clearUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyUser);
+  }
+
+  Future<void> saveThemeMode(String mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyThemeMode, mode);
+  }
+
+  Future<String> getThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyThemeMode) ?? 'dark';
+  }
+
+  Future<void> saveLocale(String langCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLocale, langCode);
+  }
+
+  Future<String> getLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyLocale) ?? 'uz';
+  }
+}

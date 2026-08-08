@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+build
+.dart_tool
+.flutter-plugins-dependencies
+*.tar.gz
+uploads
+.env
