@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "db:push": "npx prisma db push",
+    "db:migrate:deploy": "npx prisma migrate deploy",
     "db:seed": "tsx src/seed.ts",
     "prisma:generate": "npx prisma generate"
   },

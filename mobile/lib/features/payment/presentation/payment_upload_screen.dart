@@ -111,9 +111,9 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primaryLime.withOpacity(0.15),
+                color: AppColors.primaryLime.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primaryLime.withOpacity(0.4)),
+                border: Border.all(color: AppColors.primaryLime.withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [

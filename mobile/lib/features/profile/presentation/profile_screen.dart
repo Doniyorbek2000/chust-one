@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart' as dio;
 import '../../../app/theme/app_colors.dart';
-import '../../../app/providers/app_state_provider.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 
@@ -17,7 +16,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  String _selectedLang = 'O\'zbek (Lotin)';
   bool _isUploadingAvatar = false;
 
   List<Map<String, dynamic>> _myEnrollments = [];
@@ -268,8 +266,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               'address': addressController.text.trim(),
                             });
                             await ref.read(authProvider.notifier).updateUser(res.data['data'] as Map<String, dynamic>);
-                            if (!mounted) return;
-                            Navigator.pop(ctx);
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('✅ Profil ma\'lumotlari muvaffaqiyatli saqlandi!'),
@@ -277,7 +275,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             );
                           } catch (_) {
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Saqlashda xatolik yuz berdi')),
                             );
@@ -401,7 +399,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryLime.withOpacity(0.2),
+                                  color: AppColors.primaryLime.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -474,8 +472,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               await ref.read(authProvider.notifier).logout();
+              if (ctx.mounted) Navigator.pop(ctx);
               if (!mounted) return;
-              Navigator.pop(ctx);
               context.go('/onboarding');
             },
             child: const Text('Chiqish', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -487,8 +485,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeProvider);
-    final isDark = themeMode == ThemeMode.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = ref.watch(authProvider);
     final user = auth.user;
 
@@ -558,7 +555,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
                 boxShadow: isDark ? [] : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -633,7 +630,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.primaryLime.withOpacity(0.15) : const Color(0xFFDCFCE7),
+                      color: isDark ? AppColors.primaryLime.withValues(alpha: 0.15) : const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -672,58 +669,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             const SizedBox(height: 16),
 
-            // Settings section with REAL-TIME Theme & Locale toggle
-            _buildProfileSection(isDark, [
-              ListTile(
-                leading: Icon(Icons.language, color: isDark ? AppColors.primaryLime : const Color(0xFF041426), size: 22),
-                title: Text(
-                  'Ilova tili',
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                trailing: DropdownButton<String>(
-                  value: _selectedLang,
-                  dropdownColor: isDark ? AppColors.navy800 : Colors.white,
-                  underline: const SizedBox(),
-                  style: TextStyle(
-                    color: isDark ? AppColors.primaryLime : const Color(0xFF041426),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  items: ['O\'zbek (Lotin)', 'Русский', 'English'].map((lang) {
-                    return DropdownMenuItem(value: lang, child: Text(lang));
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedLang = val);
-                      ref.read(localeProvider.notifier).setLocale(val);
-                    }
-                  },
-                ),
-              ),
-              SwitchListTile(
-                secondary: Icon(Icons.dark_mode_outlined, color: isDark ? AppColors.primaryLime : const Color(0xFF041426), size: 22),
-                title: Text(
-                  'Tungi rejim (Dark Mode)',
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                value: isDark,
-                activeThumbColor: isDark ? AppColors.primaryLime : const Color(0xFF041426),
-                onChanged: (val) {
-                  ref.read(themeProvider.notifier).toggleTheme(val);
-                },
-              ),
-            ]),
-
-            const SizedBox(height: 16),
-
             // Help & Contact section
             _buildProfileSection(isDark, [
               _buildTile(Icons.help_outline, 'Qo\'llab-quvvatlash va Aloqa', AppConstants.mainPhone, _showSupportModal, isDark),
@@ -743,7 +688,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
         boxShadow: isDark ? [] : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),

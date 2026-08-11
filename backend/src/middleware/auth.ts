@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'chust_one_academy_super_secret_jwt_key_2026';
+const rawJwtSecret = process.env.JWT_SECRET;
+if (!rawJwtSecret) {
+  throw new Error('JWT_SECRET is not set. Define it in backend/.env before starting the server.');
+}
+const JWT_SECRET: string = rawJwtSecret;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface AuthUser {

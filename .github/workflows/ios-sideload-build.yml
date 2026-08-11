@@ -1,0 +1,49 @@
+name: iOS Sideload Build (Unsigned)
+
+# Manual trigger only — this costs macOS-runner minutes.
+# Produces an UNSIGNED .ipa with no Apple Developer account needed.
+# Install it on your iPhone with Sideloadly (sideloadly.io) using a free
+# Apple ID — Sideloadly does the signing locally on your PC. The app will
+# expire after 7 days (free Apple ID limit) and need re-sideloading; that's
+# fine for testing. Once you're ready for a permanent install / App Store,
+# use the "iOS Release Build" workflow instead (needs a paid Apple Developer
+# account + secrets configured).
+on:
+  workflow_dispatch:
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/ios/sideload/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/sideload/Payload/
+          cd build/ios/sideload
+          zip -r Runner.ipa Payload
+
+      - name: Upload unsigned IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chust-one-academy-unsigned-ipa
+          path: mobile/build/ios/sideload/Runner.ipa

@@ -15,12 +15,12 @@ This repository contains the complete production-ready ecosystem for **Chust One
      - Specialized "Kompyuter Kids" 2-month program highlight for grades 1–5
      - Branch location card: *"Book Kafee yonida, Ilhom Travel binosida. Chust shahri."*
      - Direct contacts: `+998 (99) 972 52 22`, Telegram `@Kompyuter_Kursi15`, `@Kayumkhadjayev`, Instagram `@Chust_One_Academy`
-   - Multi-language support: Uzbek (Latin), Russian, English
-   - Dark Mode & Light Mode support
+   - Uzbek (Latin) only — no other languages
+   - Dark mode only — no theme toggle
 
-2. **`backend/`**: Node.js / Express REST API Backend with Prisma ORM & SQLite/PostgreSQL
+2. **`backend/`**: Node.js / Express REST API Backend with Prisma ORM & PostgreSQL
    - JWT Authentication with password hashing
-   - Full seed script with real Chust One Academy course catalog, branch location, teachers, news, and admin user (`admin@chustone.uz` / `admin123`)
+   - Full seed script with real Chust One Academy course catalog, branch location, teachers, and news
 
 3. **`admin/`**: Next.js 14 Web Admin Panel
    - Real-time KPI statistics dashboard
@@ -32,10 +32,12 @@ This repository contains the complete production-ready ecosystem for **Chust One
 ## 🚀 Quick Start Guide
 
 ### 1. Run Backend REST API Server
+Requires a PostgreSQL database. Copy `.env.example` to `.env` and fill in `DATABASE_URL`, `JWT_SECRET`, and (optionally) `ADMIN_PHONE`/`ADMIN_EMAIL`/`ADMIN_PASSWORD` before seeding.
 ```bash
 cd backend
 npm install
-npx prisma db push
+cp .env.example .env   # then edit .env with real values
+npx prisma migrate deploy
 npm run db:seed
 npm run dev
 ```
@@ -58,8 +60,6 @@ Admin Dashboard will be live on `http://localhost:3000`.
 
 ---
 
-## 🔑 Default Credentials
-- **Superadmin Email**: `admin@chustone.uz`
-- **Superadmin Password**: `admin123`
-- **Student Phone**: `+998991234567`
-- **Student Password**: `student123`
+## 🔑 Admin Credentials
+
+The seed script creates the initial superadmin account from `ADMIN_PHONE` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `backend/.env`. Set real values there before seeding a production database — do not deploy with the `.env.example` placeholders.

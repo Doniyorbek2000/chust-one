@@ -15,7 +15,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isLoading = true;
   String _heroTitle = 'Bilim bilan\nkelajagingni\nyor!';
   String _heroSubtitle = 'Zamonaviy kasblarga ega bo\'ling va orzularingizni amalga oshiring.';
   String _heroBannerImage = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80';
@@ -37,58 +36,83 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isMaintenance = false;
 
-  final List<Map<String, dynamic>> _courseCategories = [
-    {
-      'id': 'comp',
-      'title': 'Kompyuter\nsavodxonligi',
-      'icon': Icons.laptop_chromebook,
-      'color': const Color(0xFF3E8BFF),
-    },
-    {
-      'id': 'mob',
-      'title': 'Mobilografiya',
-      'icon': Icons.smartphone,
-      'color': const Color(0xFFFF9F43),
-    },
-    {
-      'id': 'vid',
-      'title': 'Videomontaj',
-      'icon': Icons.movie_creation_outlined,
-      'color': const Color(0xFFFF5252),
-    },
-    {
-      'id': 'blog',
-      'title': 'Blogerlik',
-      'icon': Icons.mic_none,
-      'color': const Color(0xFF00BEC4),
-    },
-    {
-      'id': 'insta',
-      'title': 'Instagramni\nto\'g\'ri yuritish',
-      'icon': Icons.camera_alt_outlined,
-      'color': const Color(0xFFE1306C),
-    },
-    {
-      'id': 'smm',
-      'title': 'SMM\nxizmatlari',
-      'icon': Icons.people_outline,
-      'color': const Color(0xFF10AC84),
-    },
-  ];
+  List<Map<String, dynamic>> _apiCourses = [];
 
-  final List<Map<String, dynamic>> _additionalCourses = [
-    {'title': 'Mobilografiya', 'icon': Icons.camera_enhance_outlined, 'id': 'mob'},
-    {'title': 'Videomontaj', 'icon': Icons.video_library_outlined, 'id': 'vid'},
-    {'title': 'Blogerlik', 'icon': Icons.mic_external_on_outlined, 'id': 'blog'},
-    {'title': 'Instagramni to\'g\'ri yuritish', 'icon': Icons.camera_alt_outlined, 'id': 'insta'},
-    {'title': 'SMM xizmatlari', 'icon': Icons.groups_outlined, 'id': 'smm'},
-    {'title': 'Professional target yoqish', 'icon': Icons.ads_click, 'id': 'target'},
-  ];
+  // Display metadata (icon/color) for the home-screen grid, keyed by the
+  // course's real titleUz so tiles always navigate using a real course id.
+  static const Map<String, Map<String, dynamic>> _gridDisplayByTitle = {
+    'Kompyuter savodxonligi': {'label': 'Kompyuter\nsavodxonligi', 'icon': Icons.laptop_chromebook, 'color': Color(0xFF3E8BFF)},
+    'Mobilografiya': {'label': 'Mobilografiya', 'icon': Icons.smartphone, 'color': Color(0xFFFF9F43)},
+    'Videomontaj': {'label': 'Videomontaj', 'icon': Icons.movie_creation_outlined, 'color': Color(0xFFFF5252)},
+    'Blogerlik': {'label': 'Blogerlik', 'icon': Icons.mic_none, 'color': Color(0xFF00BEC4)},
+    'Instagramni to\'g\'ri yuritish': {'label': 'Instagramni\nto\'g\'ri yuritish', 'icon': Icons.camera_alt_outlined, 'color': Color(0xFFE1306C)},
+    'SMM xizmatlari': {'label': 'SMM\nxizmatlari', 'icon': Icons.people_outline, 'color': Color(0xFF10AC84)},
+  };
+
+  static const Map<String, IconData> _additionalIconByTitle = {
+    'Mobilografiya': Icons.camera_enhance_outlined,
+    'Videomontaj': Icons.video_library_outlined,
+    'Blogerlik': Icons.mic_external_on_outlined,
+    'Instagramni to\'g\'ri yuritish': Icons.camera_alt_outlined,
+    'SMM xizmatlari': Icons.groups_outlined,
+    'Professional target yoqish': Icons.ads_click,
+  };
+
+  Map<String, dynamic>? _courseByTitle(String title) {
+    for (final c in _apiCourses) {
+      if (c['titleUz'] == title) return c;
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> get _courseCategories {
+    final items = <Map<String, dynamic>>[];
+    _gridDisplayByTitle.forEach((title, display) {
+      final course = _courseByTitle(title);
+      if (course != null) {
+        items.add({
+          'id': course['id'],
+          'title': display['label'],
+          'icon': display['icon'],
+          'color': display['color'],
+        });
+      }
+    });
+    return items;
+  }
+
+  List<Map<String, dynamic>> get _additionalCourses {
+    final items = <Map<String, dynamic>>[];
+    _additionalIconByTitle.forEach((title, icon) {
+      final course = _courseByTitle(title);
+      if (course != null) {
+        items.add({'title': title, 'icon': icon, 'id': course['id']});
+      }
+    });
+    return items;
+  }
+
+  Map<String, dynamic>? get _targetCourse => _courseByTitle('Professional target yoqish');
 
   @override
   void initState() {
     super.initState();
     _fetchDynamicCmsData();
+    _fetchCourses();
+  }
+
+  Future<void> _fetchCourses() async {
+    try {
+      final dio = Dio();
+      final response = await dio.get('${AppConstants.apiBaseUrl}/courses');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = (response.data['data'] as List<dynamic>).cast<Map<String, dynamic>>();
+        if (mounted) setState(() => _apiCourses = data);
+      }
+    } catch (_) {
+      // Grid/list simply render empty if courses can't be fetched; hero and
+      // location sections still work independently.
+    }
   }
 
   Future<void> _fetchDynamicCmsData() async {
@@ -117,12 +141,11 @@ class _HomeScreenState extends State<HomeScreen> {
             _telegramContact = data['telegramContact'] ?? _telegramContact;
             _instagramUser = data['instagramUser'] ?? _instagramUser;
             _isMaintenance = data['isMaintenance'] ?? false;
-            _isLoading = false;
           });
         }
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      // Keep showing default content if the CMS fetch fails.
     }
   }
 
@@ -145,22 +168,22 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (_isMaintenance) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: AppColors.navy900,
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.build_circle_outlined, color: AppColors.primaryLime, size: 72),
-                const SizedBox(height: 16),
-                const Text(
+                Icon(Icons.build_circle_outlined, color: AppColors.primaryLime, size: 72),
+                SizedBox(height: 16),
+                Text(
                   'Profilaktika Ishlari',
                   style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: 8),
+                Text(
                   'Ilovamizda profilaktika va yangilanish ishlari olib borilmoqda. Tez orada qaytamiz!',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
@@ -226,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border.all(color: AppColors.borderDark, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
+                    color: Colors.black.withValues(alpha: 0.25),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -340,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -354,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: (cat['color'] as Color).withOpacity(0.12),
+                            color: (cat['color'] as Color).withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -386,8 +409,9 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 14),
 
             // Target banner card
+            if (_targetCourse != null)
             InkWell(
-              onTap: () => context.push('/course-detail/target'),
+              onTap: () => context.push('/course-detail/${_targetCourse!['id']}'),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -402,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF5252).withOpacity(0.12),
+                        color: const Color(0xFFFF5252).withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.ads_click, color: Color(0xFFFF5252), size: 24),
@@ -435,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: isDark ? Colors.white : AppColors.textPrimaryLight,
                 ),
                 children: const [
-                  TextSpan(text: 'BUNDAN TASHQARI SIZ '),
+                  TextSpan(text: 'BUNDAN TASHQARI '),
                   TextSpan(text: 'SIZ', style: TextStyle(color: AppColors.primaryLime)),
                 ],
               ),
@@ -496,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -510,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryLime.withOpacity(0.2),
+                          color: AppColors.primaryLime.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.location_on, color: AppColors.primaryLime, size: 20),
@@ -581,7 +605,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: AppColors.navy900.withOpacity(0.85),
+                            color: AppColors.navy900.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: AppColors.primaryLime, width: 1),
                           ),

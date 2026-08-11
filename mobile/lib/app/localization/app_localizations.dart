@@ -38,7 +38,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
 
   @override
   bool isSupported(Locale locale) {
-    return ['uz', 'ru', 'en'].contains(locale.languageCode);
+    return locale.languageCode == 'uz';
   }
 
   @override

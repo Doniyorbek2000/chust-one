@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -9,7 +10,15 @@ import { upload, UPLOAD_DIR } from './middleware/upload';
 const prisma = new PrismaClient();
 const app = express();
 
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGIN || 'https://one.temdon.uz')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(UPLOAD_DIR));
@@ -169,8 +178,8 @@ app.post('/api/v1/upload', requireAuth, upload.single('file'), async (req: Reque
   if (!req.file) {
     return res.status(400).json({ success: false, error: 'Fayl topilmadi' });
   }
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-  const url = `${protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  const base = process.env.PUBLIC_BASE_URL || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
+  const url = `${base}/uploads/${req.file.filename}`;
   res.json({ success: true, data: { url } });
 });
 
@@ -216,15 +225,13 @@ app.get('/api/v1/categories', async (req: Request, res: Response) => {
 
 app.post('/api/v1/admin/categories', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { nameUz, nameRu, nameEn, slug, iconName, sortOrder } = req.body;
+    const { nameUz, slug, iconName, sortOrder } = req.body;
     if (!nameUz || !slug) {
       return res.status(400).json({ success: false, error: 'Nomi va slug talab qilinadi' });
     }
     const category = await prisma.courseCategory.create({
       data: {
         nameUz,
-        nameRu: nameRu || nameUz,
-        nameEn: nameEn || nameUz,
         slug,
         iconName: iconName || 'category',
         sortOrder: sortOrder ?? 0,
@@ -238,13 +245,11 @@ app.post('/api/v1/admin/categories', requireAuth, requireAdmin, async (req: Requ
 
 app.patch('/api/v1/admin/categories/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { nameUz, nameRu, nameEn, slug, iconName, sortOrder } = req.body;
+    const { nameUz, slug, iconName, sortOrder } = req.body;
     const category = await prisma.courseCategory.update({
       where: { id: req.params.id },
       data: {
         ...(nameUz !== undefined && { nameUz }),
-        ...(nameRu !== undefined && { nameRu }),
-        ...(nameEn !== undefined && { nameEn }),
         ...(slug !== undefined && { slug }),
         ...(iconName !== undefined && { iconName }),
         ...(sortOrder !== undefined && { sortOrder }),
@@ -298,15 +303,9 @@ function courseWriteData(body: Record<string, unknown>) {
   return {
     categoryId: pick(body.categoryId),
     titleUz: pick(body.titleUz),
-    titleRu: body.titleUz !== undefined ? (body.titleRu || body.titleUz) : undefined,
-    titleEn: body.titleUz !== undefined ? (body.titleEn || body.titleUz) : undefined,
     subtitleUz: pick(body.subtitleUz),
-    subtitleRu: pick(body.subtitleUz),
-    subtitleEn: pick(body.subtitleUz),
     targetAudienceUz: pick(body.targetAudienceUz),
     descriptionUz: pick(body.descriptionUz),
-    descriptionRu: body.descriptionUz !== undefined ? (body.descriptionRu || body.descriptionUz) : undefined,
-    descriptionEn: body.descriptionUz !== undefined ? (body.descriptionEn || body.descriptionUz) : undefined,
     coverImage: pick(body.coverImage),
     price: body.price !== undefined ? Number(body.price) : undefined,
     discountPrice: body.discountPrice !== undefined ? (body.discountPrice === null ? null : Number(body.discountPrice)) : undefined,
@@ -380,11 +379,7 @@ app.post('/api/v1/admin/news', requireAuth, requireAdmin, async (req: Request, r
     const newNews = await prisma.news.create({
       data: {
         titleUz: titleUz || 'Yangi e\'lon',
-        titleRu: titleUz || 'Yangi e\'lon',
-        titleEn: titleUz || 'Yangi e\'lon',
         contentUz: contentUz || '',
-        contentRu: contentUz || '',
-        contentEn: contentUz || '',
         coverImage: coverImage || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80',
         isFeatured: Boolean(isFeatured),
       },
@@ -401,8 +396,8 @@ app.patch('/api/v1/admin/news/:id', requireAuth, requireAdmin, async (req: Reque
     const updated = await prisma.news.update({
       where: { id: req.params.id },
       data: {
-        ...(titleUz !== undefined && { titleUz, titleRu: titleUz, titleEn: titleUz }),
-        ...(contentUz !== undefined && { contentUz, contentRu: contentUz, contentEn: contentUz }),
+        ...(titleUz !== undefined && { titleUz }),
+        ...(contentUz !== undefined && { contentUz }),
         ...(coverImage !== undefined && { coverImage }),
         ...(isFeatured !== undefined && { isFeatured: Boolean(isFeatured) }),
       },
@@ -601,6 +596,30 @@ app.patch('/api/v1/notifications/:id/read', requireAuth, async (req: Request, re
   }
 });
 
+app.get('/api/v1/admin/notifications', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const broadcasts = await prisma.notificationBroadcast.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { notifications: true } },
+        notifications: { where: { isRead: true }, select: { id: true } },
+      },
+    });
+    const data = broadcasts.map((b) => ({
+      id: b.id,
+      title: b.title,
+      body: b.body,
+      type: b.type,
+      createdAt: b.createdAt,
+      recipientCount: b._count.notifications,
+      readCount: b.notifications.length,
+    }));
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
 app.post('/api/v1/admin/notifications/broadcast', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { title, body, type } = req.body;
@@ -608,10 +627,46 @@ app.post('/api/v1/admin/notifications/broadcast', requireAuth, requireAdmin, asy
       return res.status(400).json({ success: false, error: 'Sarlavha va matn talab qilinadi' });
     }
     const users = await prisma.user.findMany({ select: { id: true } });
-    await prisma.notification.createMany({
-      data: users.map((u) => ({ userId: u.id, title, body, type: type || 'SYSTEM' })),
+    const broadcast = await prisma.notificationBroadcast.create({
+      data: { title, body, type: type || 'SYSTEM' },
     });
-    res.json({ success: true, message: `${users.length} ta foydalanuvchiga yuborildi` });
+    await prisma.notification.createMany({
+      data: users.map((u) => ({ userId: u.id, broadcastId: broadcast.id, title, body, type: type || 'SYSTEM' })),
+    });
+    res.json({
+      success: true,
+      message: `${users.length} ta foydalanuvchiga yuborildi`,
+      data: { id: broadcast.id, title: broadcast.title, body: broadcast.body, type: broadcast.type, createdAt: broadcast.createdAt, recipientCount: users.length, readCount: 0 },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.patch('/api/v1/admin/notifications/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { title, body } = req.body;
+    if (!title || !body) {
+      return res.status(400).json({ success: false, error: 'Sarlavha va matn talab qilinadi' });
+    }
+    const broadcast = await prisma.notificationBroadcast.update({
+      where: { id: req.params.id },
+      data: { title, body },
+    });
+    await prisma.notification.updateMany({
+      where: { broadcastId: req.params.id },
+      data: { title, body },
+    });
+    res.json({ success: true, data: broadcast });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.delete('/api/v1/admin/notifications/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    await prisma.notificationBroadcast.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });
   }

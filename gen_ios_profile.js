@@ -1,7 +1,10 @@
 const fs = require('fs');
 
-// Read logo.png and convert to base64
-const logoBuffer = fs.readFileSync('logo.png');
+// Read the opaque (navy-background) webclip icon and convert to base64.
+// iOS renders transparent PNGs on the home screen with a black fill, so this
+// must be the composited icon from gen_app_icons.js, not the raw transparent
+// logo.png.
+const logoBuffer = fs.readFileSync('ios-webclip-icon.png');
 const logoBase64 = logoBuffer.toString('base64');
 
 const mobileConfigContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -34,7 +37,7 @@ ${logoBase64}
 			<key>PayloadVersion</key>
 			<integer>1</integer>
 			<key>URL</key>
-			<string>https://one.temdon.uz/</string>
+			<string>https://one.temdon.uz/app/</string>
 		</dict>
 	</array>
 	<key>PayloadDisplayName</key>

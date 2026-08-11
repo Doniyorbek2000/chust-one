@@ -266,22 +266,23 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
 
       final enrollment = response.data['data'] as Map<String, dynamic>;
 
-      if (!mounted) return;
+      if (!sheetContext.mounted) return;
       Navigator.pop(sheetContext);
       _showSuccessDialog();
 
+      if (!mounted) return;
       final price = (_course?['discountPrice'] ?? _course?['price'] ?? 0) as num;
       context.push('/payment-upload', extra: {
         'enrollmentId': enrollment['id'],
         'amount': price,
       });
     } on DioException catch (e) {
-      if (!mounted) return;
+      if (!sheetContext.mounted) return;
       ScaffoldMessenger.of(sheetContext).showSnackBar(
         SnackBar(content: Text(e.response?.data?['error']?.toString() ?? 'Xatolik yuz berdi')),
       );
     } catch (_) {
-      if (!mounted) return;
+      if (!sheetContext.mounted) return;
       ScaffoldMessenger.of(sheetContext).showSnackBar(
         const SnackBar(content: Text('Kutilmagan xatolik yuz berdi')),
       );
@@ -393,7 +394,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLime.withOpacity(0.12),
+                  color: AppColors.primaryLime.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -452,7 +453,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                       ? []
                       : [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),

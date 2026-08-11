@@ -11,28 +11,13 @@ class NewsScreen extends StatefulWidget {
 }
 
 class _NewsScreenState extends State<NewsScreen> {
-  List<Map<String, dynamic>> _newsItems = [
-    {
-      'id': 'news-1',
-      'date': '04 Avgust, 2026',
-      'title': 'Chust One Academy yangi o\'quv binoga ko\'chdi!',
-      'content': 'Bizning yangi manzilimiz: Book Kafee yonida, Ilhom Travel binosida. O\'quvchilarimiz uchun barcha zamonaviy sharoitlar va kompyuter xonalari hozirlandi.\n\nYangi binomizda 3 ta zamonaviy kompyuter laboratoriyasi, yuqori tezlikdagi Optik Internet hamda o\'quvchilarimiz uchun qahva va dam olish zonasi (Coffee & Chill Zone) tashkil etilgan.',
-      'image': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80',
-    },
-    {
-      'id': 'news-2',
-      'date': '01 Avgust, 2026',
-      'title': '1–5 sinf o\'quvchilari uchun "Kompyuter Kids" guruhi Ochildi!',
-      'content': 'Mantiqiy fikrlash, kompyuter ko\'nikmalari va amaliy mashg\'ulotlarni o\'z ichiga olgan 2 oylik maxsus tayyorlov kursi.\n\nDarslar interaktiv tarzda olib borilib, bolalarda algoritmik fikrlash va axborot texnologiyalariga bo\'lgan qiziqishni oshiradi.',
-      'image': 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80',
-    },
-    {
-      'id': 'news-3',
-      'date': '28 Iyul, 2026',
-      'title': 'Mobilografiya va Videomontaj kursiga yangi master-klasslar!',
-      'content': 'Chust One Academy talabalari uchun CapCut va Premiere Pro dasturlarida professional montaj qilish hamda Reels va TikTok uchun yuqori sifatli video olish sirlari o\'rgatiladi.',
-      'image': 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=600&q=80',
-    },
+  List<Map<String, dynamic>> _newsItems = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  static const _months = [
+    'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+    'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
   ];
 
   @override
@@ -41,25 +26,36 @@ class _NewsScreenState extends State<NewsScreen> {
     _fetchNewsFromApi();
   }
 
+  String _formatDate(String? isoDate) {
+    final date = isoDate == null ? null : DateTime.tryParse(isoDate);
+    if (date == null) return '';
+    return '${date.day.toString().padLeft(2, '0')} ${_months[date.month - 1]}, ${date.year}';
+  }
+
   Future<void> _fetchNewsFromApi() async {
     try {
       final dio = Dio();
       final response = await dio.get('${AppConstants.apiBaseUrl}/news');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List list = response.data['data'] ?? [];
-        if (mounted && list.isNotEmpty) {
+        if (mounted) {
           setState(() {
-            _newsItems = list.map((item) => {
+            _newsItems = list.map<Map<String, dynamic>>((item) => {
               'id': item['id'],
-              'title': item['titleUz'] ?? item['title'],
-              'content': item['contentUz'] ?? item['content'],
-              'date': '04 Avgust, 2026',
+              'title': item['titleUz'],
+              'content': item['contentUz'],
+              'date': _formatDate(item['createdAt'] as String?),
               'image': item['coverImage'],
             }).toList();
+            _isLoading = false;
           });
         }
+      } else {
+        if (mounted) setState(() { _isLoading = false; _hasError = true; });
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() { _isLoading = false; _hasError = true; });
+    }
   }
 
   void _showNewsDetailModal(Map<String, dynamic> news) {
@@ -164,7 +160,24 @@ class _NewsScreenState extends State<NewsScreen> {
         backgroundColor: isDark ? AppColors.navy900 : AppColors.surfaceLight,
         elevation: 0,
       ),
-      body: ListView.builder(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryLime))
+          : _hasError
+              ? Center(
+                  child: Text(
+                    'Yangiliklarni yuklab bo\'lmadi. Internetni tekshirib, qayta urinib ko\'ring.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  ),
+                )
+              : _newsItems.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Hozircha yangiliklar yo\'q',
+                        style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                      ),
+                    )
+                  : ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _newsItems.length,
         itemBuilder: (context, index) {
@@ -177,7 +190,7 @@ class _NewsScreenState extends State<NewsScreen> {
               border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),

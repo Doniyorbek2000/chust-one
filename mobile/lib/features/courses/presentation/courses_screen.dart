@@ -195,7 +195,7 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                               border: Border.all(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(isDark ? 0.08 : 0.04),
+                                  color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.04),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),

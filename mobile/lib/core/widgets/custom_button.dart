@@ -95,13 +95,13 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
             width: widget.width ?? double.infinity,
             height: widget.height,
             decoration: BoxDecoration(
-              color: widget.onPressed == null ? _backgroundColor.withOpacity(0.5) : _backgroundColor,
+              color: widget.onPressed == null ? _backgroundColor.withValues(alpha: 0.5) : _backgroundColor,
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: _border,
               boxShadow: widget.variant == ButtonVariant.primary && widget.onPressed != null
                   ? [
                       BoxShadow(
-                        color: AppColors.primaryLime.withOpacity(0.3),
+                        color: AppColors.primaryLime.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       )

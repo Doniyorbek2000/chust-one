@@ -4,8 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StorageService {
   static const String _keyToken = 'auth_token';
   static const String _keyUser = 'auth_user';
-  static const String _keyThemeMode = 'theme_mode';
-  static const String _keyLocale = 'app_locale';
 
   Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -37,25 +35,5 @@ class StorageService {
   Future<void> clearUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyUser);
-  }
-
-  Future<void> saveThemeMode(String mode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyThemeMode, mode);
-  }
-
-  Future<String> getThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyThemeMode) ?? 'dark';
-  }
-
-  Future<void> saveLocale(String langCode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyLocale, langCode);
-  }
-
-  Future<String> getLocale() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyLocale) ?? 'uz';
   }
 }

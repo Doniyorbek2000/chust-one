@@ -40,44 +40,4 @@ class AppTheme {
       ),
     );
   }
-
-  static ThemeData get lightTheme {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.backgroundLight,
-      primaryColor: AppColors.primaryLime,
-      colorScheme: ColorScheme.light(
-        primary: AppColors.primaryLime,
-        secondary: AppColors.primaryLimeDark,
-        surface: AppColors.surfaceLight,
-        onPrimary: AppColors.navy900,
-        onSurface: AppColors.textPrimaryLight,
-        error: AppColors.error,
-      ),
-      cardTheme: CardThemeData(
-        color: AppColors.surfaceLight,
-        elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.04),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: AppColors.borderLight, width: 1),
-        ),
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.surfaceLight,
-        elevation: 0,
-        centerTitle: false,
-        iconTheme: IconThemeData(color: AppColors.textPrimaryLight),
-        titleTextStyle: TextStyle(color: AppColors.textPrimaryLight, fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.navy900,
-        selectedItemColor: AppColors.primaryLime,
-        unselectedItemColor: AppColors.textSecondaryDark,
-        type: BottomNavigationBarType.fixed,
-        elevation: 10,
-      ),
-    );
-  }
 }

@@ -130,7 +130,7 @@ class ScaffoldWithBottomNavBar extends StatelessWidget {
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 10,
                     offset: const Offset(0, -4),
                   ),

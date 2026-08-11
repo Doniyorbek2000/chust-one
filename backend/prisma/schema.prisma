@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -31,8 +31,6 @@ model User {
 model CourseCategory {
   id          String   @id @default(uuid())
   nameUz      String
-  nameRu      String
-  nameEn      String
   slug        String   @unique
   iconName    String
   sortOrder   Int      @default(0)
@@ -46,15 +44,9 @@ model Course {
   categoryId       String
   category         CourseCategory @relation(fields: [categoryId], references: [id])
   titleUz          String
-  titleRu          String
-  titleEn          String
   subtitleUz       String?
-  subtitleRu       String?
-  subtitleEn       String?
   targetAudienceUz String?
   descriptionUz    String
-  descriptionRu    String
-  descriptionEn    String
   coverImage       String
   price            Float
   discountPrice    Float?
@@ -82,8 +74,6 @@ model CourseModule {
   courseId  String
   course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   titleUz   String
-  titleRu   String
-  titleEn   String
   sortOrder Int           @default(0)
   topics    CourseTopic[]
 }
@@ -93,8 +83,6 @@ model CourseTopic {
   moduleId  String
   module    CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   titleUz   String
-  titleRu   String
-  titleEn   String
   icon      String?
   sortOrder Int          @default(0)
 }
@@ -113,8 +101,6 @@ model Teacher {
 model Branch {
   id              String       @id @default(uuid())
   nameUz          String
-  nameRu          String
-  nameEn          String
   addressLandmark String
   city            String
   latitude        Float
@@ -167,11 +153,7 @@ model Payment {
 model News {
   id         String   @id @default(uuid())
   titleUz    String
-  titleRu    String
-  titleEn    String
   contentUz  String
-  contentRu  String
-  contentEn  String
   coverImage String
   viewCount  Int      @default(0)
   isFeatured Boolean  @default(false)
@@ -189,15 +171,26 @@ model Favorite {
   @@id([userId, courseId])
 }
 
+model NotificationBroadcast {
+  id            String         @id @default(uuid())
+  title         String
+  body          String
+  type          String         @default("SYSTEM")
+  createdAt     DateTime       @default(now())
+  notifications Notification[]
+}
+
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  body      String
-  type      String   @default("SYSTEM")
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id          String                 @id @default(uuid())
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  broadcastId String?
+  broadcast   NotificationBroadcast? @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  title       String
+  body        String
+  type        String                 @default("SYSTEM")
+  isRead      Boolean                @default(false)
+  createdAt   DateTime               @default(now())
 }
 
 model AppSetting {

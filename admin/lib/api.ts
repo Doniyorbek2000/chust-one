@@ -22,7 +22,6 @@ api.interceptors.response.use(
   (err) => {
     if (err?.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem(TOKEN_KEY);
-      window.location.reload();
     }
     return Promise.reject(err);
   }
@@ -43,5 +42,5 @@ export function uploadUrl(fieldFile: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', fieldFile);
   return api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-    .then((res) => res.data.data.url as string);
+    .then((res) => res.data?.data?.url as string);
 }

@@ -4,23 +4,18 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
 import 'localization/app_localizations.dart';
-import 'providers/app_state_provider.dart';
 
 class ChustOneApp extends ConsumerWidget {
   const ChustOneApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
-    final locale = ref.watch(localeProvider);
-
     return MaterialApp.router(
       title: 'Chust One Academy',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
-      locale: locale,
+      theme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
+      locale: const Locale('uz', 'LATN'),
       routerConfig: appRouter,
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -30,8 +25,6 @@ class ChustOneApp extends ConsumerWidget {
       ],
       supportedLocales: const [
         Locale('uz', 'LATN'),
-        Locale('ru', 'RU'),
-        Locale('en', 'US'),
       ],
     );
   }

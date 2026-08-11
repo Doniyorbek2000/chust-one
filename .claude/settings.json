@@ -76,11 +76,18 @@
       "PowerShell(py \"C:\\\\Users\\\\COMPX~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Comp-X-Desktop-05-08-2026-Chust-One\\\\382f2eb5-aa34-4dd1-8e84-2fd918a54e97\\\\scratchpad\\\\verify_live3.py\")",
       "PowerShell(py \"C:\\\\Users\\\\COMPX~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Comp-X-Desktop-05-08-2026-Chust-One\\\\382f2eb5-aa34-4dd1-8e84-2fd918a54e97\\\\scratchpad\\\\verify_sync.py\")",
       "Bash(python3 -c \"import json; d=json.load\\(open\\('mobile/assets/i18n/uz_latn.json',encoding='utf-8'\\)\\); print\\(len\\(d\\),'keys'\\); print\\(list\\(d.items\\(\\)\\)[:5]\\)\")",
-      "Bash(node -e \"const d=require\\('./mobile/assets/i18n/uz_latn.json'\\); console.log\\(Object.keys\\(d\\).length,'keys'\\); console.log\\(Object.entries\\(d\\).slice\\(0,5\\)\\);\")"
+      "Bash(node -e \"const d=require\\('./mobile/assets/i18n/uz_latn.json'\\); console.log\\(Object.keys\\(d\\).length,'keys'\\); console.log\\(Object.entries\\(d\\).slice\\(0,5\\)\\);\")",
+      "Bash(dart --version)",
+      "Bash(rm \"/c/Users/Comp X/Desktop/05.08.2026/Chust One/mobile/lib/core/constants/api_constants.dart\")",
+      "Bash(rm \"/c/Users/Comp X/Desktop/05.08.2026/Chust One/mobile/lib/app/providers/app_state_provider.dart\")",
+      "Bash(rm \"/c/Users/Comp X/Desktop/05.08.2026/Chust One/mobile/assets/i18n/ru_ru.json\" \"/c/Users/Comp X/Desktop/05.08.2026/Chust One/mobile/assets/i18n/en_us.json\" && ls \"/c/Users/Comp X/Desktop/05.08.2026/Chust One/mobile/assets/i18n/\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\COMPX~1\\AppData\\Local\\Temp\\claude\\c--Users-Comp-X-Desktop-05-08-2026-Chust-One\\e606b395-100d-43ee-9e80-015d761de7de",
-      "\\tmp"
+      "\\tmp",
+      "C:\\Users\\Comp X\\Desktop\\05.08.2026\\Chust One\\mobile\\lib\\core\\constants",
+      "C:\\Users\\Comp X\\Desktop\\05.08.2026\\Chust One\\mobile\\lib\\app\\providers",
+      "C:\\Users\\Comp X\\Desktop\\05.08.2026\\Chust One\\mobile\\assets\\i18n"
     ]
   }
 }

@@ -80,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             borderRadius: BorderRadius.circular(28),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                               ),
@@ -148,7 +148,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: isDark ? Colors.white : AppColors.textPrimaryLight,
                                   side: BorderSide(
-                                    color: isDark ? AppColors.primaryLime.withOpacity(0.6) : AppColors.navy900,
+                                    color: isDark ? AppColors.primaryLime.withValues(alpha: 0.6) : AppColors.navy900,
                                     width: 1.5,
                                   ),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),

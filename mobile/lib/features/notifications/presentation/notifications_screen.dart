@@ -108,7 +108,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isRead ? (isDark ? AppColors.borderDark : AppColors.borderLight) : AppColors.primaryLime.withOpacity(0.5),
+                                color: isRead ? (isDark ? AppColors.borderDark : AppColors.borderLight) : AppColors.primaryLime.withValues(alpha: 0.5),
                               ),
                             ),
                             child: Row(
@@ -116,7 +116,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryLime.withOpacity(0.15),
+                                    color: AppColors.primaryLime.withValues(alpha: 0.15),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.notifications_active, color: AppColors.primaryLime, size: 20),

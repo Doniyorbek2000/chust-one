@@ -30,7 +30,7 @@ class AcademyLogo extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryLime.withOpacity(0.35),
+                color: AppColors.primaryLime.withValues(alpha: 0.35),
                 blurRadius: 10,
                 spreadRadius: 1,
               ),
@@ -80,33 +80,36 @@ class _HexagonPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    final paint = Paint()
+    // Outer stroke hexagon
+    final outerStrokePaint = Paint()
+      ..color = AppColors.primaryLime
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.08;
+
+    // Inner filled hexagon
+    final innerFillPaint = Paint()
       ..color = AppColors.primaryLime
       ..style = PaintingStyle.fill;
 
-    final innerPaint = Paint()
-      ..color = AppColors.navy900
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
+    final outerPath = Path();
     for (int i = 0; i < 6; i++) {
       double angle = (i * 60 - 30) * math.pi / 180;
-      double x = center.dx + radius * 0.95 * math.cos(angle);
-      double y = center.dy + radius * 0.95 * math.sin(angle);
+      double x = center.dx + radius * 0.88 * math.cos(angle);
+      double y = center.dy + radius * 0.88 * math.sin(angle);
       if (i == 0) {
-        path.moveTo(x, y);
+        outerPath.moveTo(x, y);
       } else {
-        path.lineTo(x, y);
+        outerPath.lineTo(x, y);
       }
     }
-    path.close();
-    canvas.drawPath(path, paint);
+    outerPath.close();
+    canvas.drawPath(outerPath, outerStrokePaint);
 
     final innerPath = Path();
     for (int i = 0; i < 6; i++) {
       double angle = (i * 60 - 30) * math.pi / 180;
-      double x = center.dx + radius * 0.5 * math.cos(angle);
-      double y = center.dy + radius * 0.5 * math.sin(angle);
+      double x = center.dx + radius * 0.50 * math.cos(angle);
+      double y = center.dy + radius * 0.50 * math.sin(angle);
       if (i == 0) {
         innerPath.moveTo(x, y);
       } else {
@@ -114,7 +117,7 @@ class _HexagonPainter extends CustomPainter {
       }
     }
     innerPath.close();
-    canvas.drawPath(innerPath, innerPaint);
+    canvas.drawPath(innerPath, innerFillPaint);
   }
 
   @override

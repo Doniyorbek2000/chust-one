@@ -43,8 +43,6 @@ interface AppSettings {
 interface Category {
   id: string;
   nameUz: string;
-  nameRu: string;
-  nameEn: string;
   slug: string;
   iconName: string;
   sortOrder: number;
@@ -177,7 +175,8 @@ const EMPTY_NEWS_FORM: Partial<NewsItem> = {
   isFeatured: false,
 };
 
-function money(n: number) {
+function money(n?: number | null) {
+  if (n == null || isNaN(n)) return '0 so\'m';
   return n.toLocaleString('uz-UZ') + ' so\'m';
 }
 
@@ -195,10 +194,26 @@ function statusBadge(status: string) {
   return map[status] || 'bg-slate-500/20 text-slate-300';
 }
 
+// Native <input type="file"> button labels ("Choose File", "Выберите файл", etc.)
+// are rendered by the browser using the visitor's OS/browser language and can't
+// be overridden via CSS. This wraps a hidden input in our own styled label so
+// the button always reads in Uzbek regardless of the visitor's browser locale.
+function FileUploadButton({ id, onChange }: { id: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <label
+      htmlFor={id}
+      className="cursor-pointer inline-flex items-center text-xs font-semibold bg-[#C6F432] text-[#041426] rounded-xl px-4 py-2.5 hover:bg-[#b0de28] transition-colors"
+    >
+      Rasm tanlash
+      <input id={id} type="file" accept="image/*" onChange={onChange} className="hidden" />
+    </label>
+  );
+}
+
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
-  const [adminPhone, setAdminPhone] = useState('+998990000000');
+  const [adminPhone, setAdminPhone] = useState('+998999725222');
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
@@ -244,14 +259,14 @@ export default function AdminDashboard() {
       api.get('/admin/payments'),
       api.get('/admin/stats'),
     ]);
-    if (s.status === 'fulfilled') setSettings((prev) => ({ ...prev, ...s.value.data.data }));
-    if (c.status === 'fulfilled') setCategories(c.value.data.data);
-    if (cr.status === 'fulfilled') setCourses(cr.value.data.data);
-    if (n.status === 'fulfilled') setNews(n.value.data.data);
-    if (u.status === 'fulfilled') setStudents(u.value.data.data);
-    if (e.status === 'fulfilled') setEnrollments(e.value.data.data);
-    if (p.status === 'fulfilled') setPayments(p.value.data.data);
-    if (st.status === 'fulfilled') setStats(st.value.data.data);
+    if (s.status === 'fulfilled' && s.value.data?.data) setSettings((prev) => ({ ...prev, ...s.value.data.data }));
+    if (c.status === 'fulfilled' && Array.isArray(c.value.data?.data)) setCategories(c.value.data.data);
+    if (cr.status === 'fulfilled' && Array.isArray(cr.value.data?.data)) setCourses(cr.value.data.data);
+    if (n.status === 'fulfilled' && Array.isArray(n.value.data?.data)) setNews(n.value.data.data);
+    if (u.status === 'fulfilled' && Array.isArray(u.value.data?.data)) setStudents(u.value.data.data);
+    if (e.status === 'fulfilled' && Array.isArray(e.value.data?.data)) setEnrollments(e.value.data.data);
+    if (p.status === 'fulfilled' && Array.isArray(p.value.data?.data)) setPayments(p.value.data.data);
+    if (st.status === 'fulfilled' && st.value.data?.data) setStats(st.value.data.data);
     setLoadingData(false);
   };
 
@@ -492,7 +507,7 @@ export default function AdminDashboard() {
         <div className="w-full max-w-md bg-[#0A1D33] border border-[#1E3A5F] rounded-3xl p-8 shadow-2xl">
           <div className="flex flex-col items-center justify-center mb-6">
             <svg width="68" height="68" viewBox="0 0 100 100" fill="none">
-              <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="#041426" stroke="#C6F432" strokeWidth="6" />
+              <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#C6F432" strokeWidth="6" />
               <polygon points="50,22 75,36.5 75,63.5 50,78 25,63.5 25,36.5" fill="#C6F432" />
             </svg>
             <h1 className="text-2xl font-bold text-white mt-4">Chust One Academy</h1>
@@ -566,7 +581,7 @@ export default function AdminDashboard() {
         <div className="p-6 border-b border-[#1E3A5F] flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-              <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="#041426" stroke="#C6F432" strokeWidth="6" />
+              <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#C6F432" strokeWidth="6" />
               <polygon points="50,22 75,36.5 75,63.5 50,78 25,63.5 25,36.5" fill="#C6F432" />
             </svg>
             <div>
@@ -700,12 +715,7 @@ export default function AdminDashboard() {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Screen 1 Asosiy Rasmi (Upload)</label>
                   <div className="flex items-center space-x-4">
                     <img src={settings.onboardingImageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-[#1E3A5F]" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload('onboardingImageUrl')}
-                      className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#C6F432] file:text-[#041426] hover:file:bg-[#b0de28]"
-                    />
+                    <FileUploadButton id="upload-onboarding-image" onChange={handleFileUpload('onboardingImageUrl')} />
                   </div>
                 </div>
               </div>
@@ -739,12 +749,7 @@ export default function AdminDashboard() {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Hero Banner Rasmi (Upload)</label>
                   <div className="flex items-center space-x-4">
                     <img src={settings.heroBannerImage} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-[#1E3A5F]" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload('heroBannerImage')}
-                      className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#C6F432] file:text-[#041426] hover:file:bg-[#b0de28]"
-                    />
+                    <FileUploadButton id="upload-hero-banner" onChange={handleFileUpload('heroBannerImage')} />
                   </div>
                 </div>
               </div>
@@ -781,12 +786,7 @@ export default function AdminDashboard() {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Bino rasmi (Upload)</label>
                   <div className="flex items-center space-x-4">
                     <img src={settings.buildingImageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-[#1E3A5F]" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload('buildingImageUrl')}
-                      className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#C6F432] file:text-[#041426] hover:file:bg-[#b0de28]"
-                    />
+                    <FileUploadButton id="upload-building-image" onChange={handleFileUpload('buildingImageUrl')} />
                   </div>
                 </div>
 
@@ -1305,12 +1305,7 @@ export default function AdminDashboard() {
                 <label className="block font-semibold text-slate-300 mb-1">Muqova Rasmi</label>
                 <div className="flex items-center space-x-3">
                   <img src={courseForm.coverImage} alt="preview" className="w-16 h-16 object-cover rounded-xl border border-[#1E3A5F]" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCourseImageUpload}
-                    className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#C6F432] file:text-[#041426] hover:file:bg-[#b0de28]"
-                  />
+                  <FileUploadButton id="upload-course-image" onChange={handleCourseImageUpload} />
                 </div>
               </div>
             </div>
@@ -1369,12 +1364,7 @@ export default function AdminDashboard() {
                 <label className="block font-semibold text-slate-300 mb-1">Rasm</label>
                 <div className="flex items-center space-x-3">
                   <img src={newsForm.coverImage} alt="preview" className="w-16 h-16 object-cover rounded-xl border border-[#1E3A5F]" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleNewsImageUpload}
-                    className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#C6F432] file:text-[#041426] hover:file:bg-[#b0de28]"
-                  />
+                  <FileUploadButton id="upload-news-image" onChange={handleNewsImageUpload} />
                 </div>
               </div>
 
