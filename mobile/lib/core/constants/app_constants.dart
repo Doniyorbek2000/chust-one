@@ -1,6 +1,6 @@
 class AppConstants {
   static const String appName = 'Chust One Academy';
-  static const String apiBaseUrl = 'https://one.temdon.uz/api/v1';
+  static const String apiBaseUrl = 'https://chustone.uz/api/v1';
 
   // Seed reference data matching visual specs
   static const String mainPhone = '+998 (99) 972 52 22';

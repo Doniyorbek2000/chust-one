@@ -20,6 +20,7 @@ model User {
   age           Int?
   address       String?
   isVerified    Boolean        @default(true)
+  deletedAt     DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   enrollments   Enrollment[]
@@ -193,9 +194,22 @@ model Notification {
   createdAt   DateTime               @default(now())
 }
 
+model ContentBlock {
+  id        String   @id @default(uuid())
+  section   String
+  sortOrder Int      @default(0)
+  iconName  String?
+  titleUz   String?
+  bodyUz    String?
+  mediaUrl  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model AppSetting {
   id                      String   @id @default("1")
-  
+
   // Onboarding Welcome Screen CMS fields
   onboardingTitleUz       String   @default("Kelajagingizni biz bilan yarating!")
   onboardingSubtitleUz    String   @default("Zamonaviy kasblarni o'rganing, ko'nikmalaringizni rivojlantiring va muvaffaqiyat sari qadam qo'ying.")
@@ -207,6 +221,29 @@ model AppSetting {
   heroSubtitleUz          String   @default("Zamonaviy kasblarga ega bo'ling va orzularingizni amalga oshiring.")
   heroBannerImage         String   @default("https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80")
   heroCtaTextUz           String   @default("Kurslarni ko'rish")
+
+  aboutTagUz              String   @default("NEGA AYNAN BIZ")
+  aboutTitleUz            String   @default("Nega Aynan Chust One Academy?")
+  aboutIntroUz            String   @default("Biz Chust shahridagi zamonaviy IT va media ta'lim markazlaridan biri sifatida, nazariyadan ko'ra amaliyotga ko'proq vaqt ajratamiz. Har bir talaba individual e'tibor va real loyihalar ustida ishlash imkoniyatiga ega bo'ladi.")
+  aboutImageUrl           String   @default("https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&w=700&q=80")
+  aboutBadgeNumberUz      String   @default("500+")
+  aboutBadgeLabelUz       String   @default("Muvaffaqiyatli bitiruvchilar")
+  aboutButtonTextUz       String   @default("Kurslar bilan tanishish")
+
+  audienceTagUz           String   @default("KIMLAR UCHUN")
+  audienceTitleUz         String   @default("Ushbu Kurslar Kimlar Uchun Mos?")
+
+  benefitsTagUz           String   @default("AFZALLIKLARIMIZ")
+  benefitsTitleUz         String   @default("Nima Uchun Bizning Kurslarni Tanlashadi?")
+
+  scheduleTagUz           String   @default("DARS JADVALI")
+  scheduleTitleUz         String   @default("Sizga Qulay Vaqtni Tanlang")
+
+  featuresTagUz           String   @default("DASTUR XUSUSIYATLARI")
+  featuresTitleUz         String   @default("O'quv Jarayonining Afzalliklari")
+
+  testimonialsTagUz       String   @default("MIJOZLAR FIKRI")
+  testimonialsTitleUz     String   @default("O'quvchilarimiz Nima Deydi?")
 
   locationTitleUz         String   @default("BIZNING YANGI MANZILIMIZ:")
   buildingImageUrl        String   @default("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80")

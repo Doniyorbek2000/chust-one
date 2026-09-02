@@ -96,6 +96,25 @@ async function main() {
     console.log('iOS AppIcon.appiconset done');
   }
 
+  // --- iOS LaunchImage (LaunchScreen.storyboard logo, transparent over navy) ---
+  const launchImageDir = 'mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset';
+  if (fs.existsSync(launchImageDir)) {
+    const LAUNCH_BOX_W = 168;
+    const LAUNCH_BOX_H = 185;
+    const LAUNCH_MARK_SIZE = 140;
+    const launchScales = { 'LaunchImage.png': 1, 'LaunchImage@2x.png': 2, 'LaunchImage@3x.png': 3 };
+    for (const [file, scale] of Object.entries(launchScales)) {
+      const canvas = new Jimp({ width: LAUNCH_BOX_W * scale, height: LAUNCH_BOX_H * scale, color: 0x00000000 });
+      const markSize = LAUNCH_MARK_SIZE * scale;
+      const resizedMark = mark.clone().resize({ w: markSize, h: markSize });
+      const offsetX = Math.round((LAUNCH_BOX_W * scale - markSize) / 2);
+      const offsetY = Math.round((LAUNCH_BOX_H * scale - markSize) / 2);
+      canvas.composite(resizedMark, offsetX, offsetY);
+      await canvas.write(`${launchImageDir}/${file}`);
+    }
+    console.log('iOS LaunchImage.imageset done');
+  }
+
   console.log('\n✅ ALL APP ICONS REGENERATED (opaque navy background) FROM logo.png!');
 }
 

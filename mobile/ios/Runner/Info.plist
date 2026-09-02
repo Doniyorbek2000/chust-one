@@ -33,12 +33,14 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Chust One Academy profilingizga rasm yuklash uchun galereyaga ruhsat bering.</string>
 	
-	<!-- App Transport Security for HTTPS API -->
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
+	<!-- No ATS exceptions needed: the API is HTTPS-only (chustone.uz), so we
+	     rely on iOS's default App Transport Security instead of a blanket
+	     NSAllowsArbitraryLoads exception (App Review flags those). -->
+
+	<!-- The app does not use encryption beyond what's exempt (standard HTTPS/TLS),
+	     so this skips the manual export-compliance question on every TestFlight/App Store upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 
 	<key>UIApplicationSceneManifest</key>
 	<dict>

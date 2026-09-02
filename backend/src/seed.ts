@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { seedContentBlocks } from './seedContentBlocks';
 
 const prisma = new PrismaClient();
 
@@ -248,6 +249,11 @@ async function main() {
       },
     ],
   });
+
+  // 8. Content Blocks (editable landing page sections) — extracted into its
+  // own idempotent script so it can also be run alone against an already-seeded
+  // production database (see seedContentBlocks.ts).
+  await seedContentBlocks(prisma);
 
   console.log('✅ Chust One Academy database seeding completed successfully!');
 }

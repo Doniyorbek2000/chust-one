@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { generateToken, requireAuth, requireAdmin, optionalAuth } from './middleware/auth';
@@ -10,7 +11,7 @@ import { upload, UPLOAD_DIR } from './middleware/upload';
 const prisma = new PrismaClient();
 const app = express();
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'https://one.temdon.uz')
+const allowedOrigins = (process.env.CORS_ORIGIN || 'https://chustone.uz')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -171,6 +172,46 @@ app.patch('/api/v1/auth/profile', requireAuth, async (req: Request, res: Respons
   }
 });
 
+// Account deletion (Apple/Google policy requires in-app self-service deletion
+// for apps that support in-app account creation). We anonymize personal data
+// and lock the account out instead of a hard delete, so Enrollment/Payment
+// history stays intact for accounting/reporting.
+app.delete('/api/v1/auth/account', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, error: 'Hisobni o\'chirish uchun joriy parolni kiriting' });
+    }
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!user) return res.status(404).json({ success: false, error: 'Foydalanuvchi topilmadi' });
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ success: false, error: 'Parol noto\'g\'ri' });
+    }
+
+    const unusablePasswordHash = await bcrypt.hash(crypto.randomUUID(), 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        firstName: 'O\'chirilgan',
+        lastName: 'foydalanuvchi',
+        phoneNumber: `deleted_${user.id}`,
+        email: null,
+        passwordHash: unusablePasswordHash,
+        avatarUrl: null,
+        city: null,
+        age: null,
+        address: null,
+        deletedAt: new Date(),
+      },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
 // -------------------------------------------------------------
 // UPLOAD ENDPOINT
 // -------------------------------------------------------------
@@ -264,6 +305,91 @@ app.patch('/api/v1/admin/categories/:id', requireAuth, requireAdmin, async (req:
 app.delete('/api/v1/admin/categories/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     await prisma.courseCategory.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+// -------------------------------------------------------------
+// CONTENT BLOCKS ENDPOINTS (public landing page section content)
+// -------------------------------------------------------------
+app.get('/api/v1/content-blocks', async (req: Request, res: Response) => {
+  try {
+    const { section } = req.query;
+    const blocks = await prisma.contentBlock.findMany({
+      where: {
+        isActive: true,
+        ...(section ? { section: String(section) } : {}),
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json({ success: true, data: blocks });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.get('/api/v1/admin/content-blocks', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { section } = req.query;
+    const blocks = await prisma.contentBlock.findMany({
+      where: section ? { section: String(section) } : {},
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json({ success: true, data: blocks });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.post('/api/v1/admin/content-blocks', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { section, sortOrder, iconName, titleUz, bodyUz, mediaUrl, isActive } = req.body;
+    if (!section) {
+      return res.status(400).json({ success: false, error: 'Bo\'lim (section) talab qilinadi' });
+    }
+    const block = await prisma.contentBlock.create({
+      data: {
+        section,
+        sortOrder: sortOrder ?? 0,
+        iconName: iconName || null,
+        titleUz: titleUz || null,
+        bodyUz: bodyUz || null,
+        mediaUrl: mediaUrl || null,
+        isActive: isActive ?? true,
+      },
+    });
+    res.json({ success: true, data: block });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.patch('/api/v1/admin/content-blocks/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { section, sortOrder, iconName, titleUz, bodyUz, mediaUrl, isActive } = req.body;
+    const block = await prisma.contentBlock.update({
+      where: { id: req.params.id },
+      data: {
+        ...(section !== undefined && { section }),
+        ...(sortOrder !== undefined && { sortOrder }),
+        ...(iconName !== undefined && { iconName }),
+        ...(titleUz !== undefined && { titleUz }),
+        ...(bodyUz !== undefined && { bodyUz }),
+        ...(mediaUrl !== undefined && { mediaUrl }),
+        ...(isActive !== undefined && { isActive }),
+      },
+    });
+    res.json({ success: true, data: block });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.delete('/api/v1/admin/content-blocks/:id', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    await prisma.contentBlock.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message });

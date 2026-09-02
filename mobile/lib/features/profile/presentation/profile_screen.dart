@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart' as dio;
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
@@ -147,7 +148,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             CircleAvatar(
                               radius: 48,
                               backgroundColor: AppColors.primaryLime,
-                              backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+                              backgroundImage: user.avatarUrl != null ? CachedNetworkImageProvider(user.avatarUrl!) : null,
                               child: user.avatarUrl == null
                                   ? Text(
                                       user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : '?',
@@ -378,12 +379,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            course['coverImage'] as String? ?? '',
+                          child: CachedNetworkImage(
+                            imageUrl: course['coverImage'] as String? ?? '',
                             width: 56,
                             height: 56,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
+                            placeholder: (context, url) => Container(
+                              width: 56,
+                              height: 56,
+                              color: AppColors.navy700,
+                            ),
+                            errorWidget: (context, url, error) => Container(
                               width: 56,
                               height: 56,
                               color: AppColors.navy700,
@@ -483,6 +489,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _showDeleteAccountDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final passwordController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        bool isSubmitting = false;
+        String? errorText;
+        return StatefulBuilder(
+          builder: (ctx, setState2) => AlertDialog(
+            backgroundColor: isDark ? AppColors.navy800 : Colors.white,
+            title: Text('Hisobni o\'chirish', style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hisobingiz butunlay o\'chiriladi: ism, telefon raqami, email va profil rasmingiz olib tashlanadi hamda hisobga qayta kirib bo\'lmaydi. Bu amalni ortga qaytarib bo\'lmaydi.',
+                  style: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B), fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight),
+                  decoration: InputDecoration(
+                    labelText: 'Joriy parolingiz',
+                    labelStyle: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B)),
+                    errorText: errorText,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                child: Text('Bekor qilish', style: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B))),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        if (passwordController.text.isEmpty) {
+                          setState2(() => errorText = 'Parolni kiriting');
+                          return;
+                        }
+                        setState2(() {
+                          isSubmitting = true;
+                          errorText = null;
+                        });
+                        try {
+                          final apiClient = ref.read(apiClientProvider);
+                          await apiClient.delete('/auth/account', data: {'password': passwordController.text});
+                          await ref.read(authProvider.notifier).logout();
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (!mounted) return;
+                          context.go('/onboarding');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Hisobingiz muvaffaqiyatli o\'chirildi')),
+                          );
+                        } on dio.DioException catch (e) {
+                          setState2(() {
+                            isSubmitting = false;
+                            errorText = e.response?.data?['error'] as String? ?? 'Xatolik yuz berdi';
+                          });
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Hisobni o\'chirish', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -570,7 +656,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: AppColors.primaryLime,
-                          backgroundImage: user!.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+                          backgroundImage: user!.avatarUrl != null ? CachedNetworkImageProvider(user.avatarUrl!) : null,
                           child: user.avatarUrl == null
                               ? Text(
                                   user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : '?',
@@ -673,6 +759,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _buildProfileSection(isDark, [
               _buildTile(Icons.help_outline, 'Qo\'llab-quvvatlash va Aloqa', AppConstants.mainPhone, _showSupportModal, isDark),
               _buildTile(Icons.logout, 'Tizimdan chiqish', '', _showLogoutDialog, isDark, isDanger: true),
+              _buildTile(Icons.delete_forever_outlined, 'Hisobni o\'chirish', '', _showDeleteAccountDialog, isDark, isDanger: true),
             ]),
           ],
         ),

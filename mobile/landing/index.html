@@ -16,7 +16,7 @@
   <link rel="shortcut icon" href="favicon.ico?v=2">
 `
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://one.temdon.uz/">
+  <meta property="og:url" content="https://chustone.uz/">
   <meta property="og:title" content="Chust One Academy - Zamonaviy IT & Media Akademiyasi">
   <meta property="og:description" content="Kompyuter savodxonligi, Mobilografiya, SMM va Target kurslariga qabul ochiq! Book Kafee yonida, Ilhom Travel binosida.">
   <meta property="og:image" content="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80">
@@ -1381,10 +1381,7 @@
   <nav class="navbar">
     <div class="container nav-wrapper">
       <a href="#" class="logo-group">
-        <svg width="42" height="42" viewBox="0 0 100 100" fill="none">
-          <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="#041426" stroke="#C6F432" stroke-width="6" />
-          <polygon points="50,22 75,36.5 75,63.5 50,78 25,63.5 25,36.5" fill="#C6F432" />
-        </svg>
+        <img src="/logo.png" alt="Chust One Academy" width="42" height="42" />
         <div class="logo-text">
           <h1>Chust One</h1>
           <span>ACADEMY</span>
@@ -1400,13 +1397,13 @@
       </ul>
 
       <div class="nav-buttons">
-        <a href="tel:+998999725222" class="nav-phone">
-          <i class="fa-solid fa-phone"></i> +998 (99) 972 52 22
+        <a href="tel:+998999725222" class="nav-phone" id="navPhone">
+          <i class="fa-solid fa-phone"></i> <span id="navPhoneText">+998 (99) 972 52 22</span>
         </a>
-        <a href="https://one.temdon.uz/download/app-release.apk" class="btn-lime">
+        <a href="https://chustone.uz/download/app-release.apk" class="btn-lime">
           <i class="fa-brands fa-android"></i> <span class="btn-text">Android APK</span>
         </a>
-        <a href="https://one.temdon.uz/app/" onclick="return openIosModal(event)" class="btn-ios">
+        <a href="https://chustone.uz/app/" onclick="return openIosModal(event)" class="btn-ios">
           <i class="fa-brands fa-apple"></i> iOS App Yuklash
         </a>
         <button type="button" class="hamburger-btn" id="hamburgerBtn" aria-label="Menyuni ochish" aria-expanded="false" aria-controls="mobileMenu">
@@ -1432,10 +1429,10 @@
       <li><a href="#download">Mobil Ilova</a></li>
     </ul>
     <div class="mobile-menu-actions">
-      <a href="https://one.temdon.uz/download/app-release.apk" class="btn-lime">
+      <a href="https://chustone.uz/download/app-release.apk" class="btn-lime">
         <i class="fa-brands fa-android"></i> Android APK Yuklash
       </a>
-      <a href="https://one.temdon.uz/app/" onclick="return openIosModal(event)" class="btn-ios">
+      <a href="https://chustone.uz/app/" onclick="return openIosModal(event)" class="btn-ios">
         <i class="fa-brands fa-apple"></i> iOS App Yuklash
       </a>
     </div>
@@ -1448,27 +1445,27 @@
         <div class="hero-badge">
           <i class="fa-solid fa-sparkles"></i> 2026 Yangi O'quv Yili Qabuli Boshlandi
         </div>
-        <h2 class="hero-title">
+        <h2 class="hero-title" id="heroTitle">
           Bilim bilan <span>kelajagingni</span> yor!
         </h2>
-        <p class="hero-subtitle">
+        <p class="hero-subtitle" id="heroSubtitle">
           Chust shahridagi zamonaviy IT va Media akademiyasi. Kompyuter savodxonligi, Mobilografiya, Videomontaj, SMM va Target yoqish bo'yicha professional mutaxassislardan amaliy ta'lim o'rganing!
         </p>
         <div class="hero-actions">
           <a href="#courses" class="btn-lime" style="font-size: 15px; padding: 14px 28px;">
             <i class="fa-solid fa-book-open"></i> Kurslarni ko'rish
           </a>
-          <a href="https://one.temdon.uz/download/app-release.apk" class="btn-lime" style="font-size: 15px; padding: 14px 28px; background: rgba(198, 244, 50, 0.15); color: var(--lime-primary); border: 1px solid var(--lime-primary);">
+          <a href="https://chustone.uz/download/app-release.apk" class="btn-lime" style="font-size: 15px; padding: 14px 28px; background: rgba(198, 244, 50, 0.15); color: var(--lime-primary); border: 1px solid var(--lime-primary);">
             <i class="fa-brands fa-android"></i> Android APK Yuklash
           </a>
-          <a href="https://one.temdon.uz/app/" onclick="return openIosModal(event)" class="btn-ios" style="font-size: 15px; padding: 14px 24px;">
+          <a href="https://chustone.uz/app/" onclick="return openIosModal(event)" class="btn-ios" style="font-size: 15px; padding: 14px 24px;">
             <i class="fa-brands fa-apple"></i> iOS iPhone Ilovasi Yuklash
           </a>
         </div>
       </div>
 
       <div>
-        <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80" alt="Chust One Academy Talabalari" class="hero-card-image" />
+        <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80" alt="Chust One Academy Talabalari" class="hero-card-image" id="heroImage" />
       </div>
     </div>
   </section>
@@ -1477,24 +1474,24 @@
   <section class="trust-section" id="about">
     <div class="container trust-grid">
       <div class="trust-copy reveal">
-        <span class="section-tag">NEGA AYNAN BIZ</span>
-        <h3 class="section-title">Nega Aynan Chust One Academy?</h3>
-        <p>Biz Chust shahridagi zamonaviy IT va media ta'lim markazlaridan biri sifatida, nazariyadan ko'ra amaliyotga ko'proq vaqt ajratamiz. Har bir talaba individual e'tibor va real loyihalar ustida ishlash imkoniyatiga ega bo'ladi.</p>
-        <ul class="trust-check-list">
+        <span class="section-tag" id="aboutTag">NEGA AYNAN BIZ</span>
+        <h3 class="section-title" id="aboutTitle">Nega Aynan Chust One Academy?</h3>
+        <p id="aboutIntro">Biz Chust shahridagi zamonaviy IT va media ta'lim markazlaridan biri sifatida, nazariyadan ko'ra amaliyotga ko'proq vaqt ajratamiz. Har bir talaba individual e'tibor va real loyihalar ustida ishlash imkoniyatiga ega bo'ladi.</p>
+        <ul class="trust-check-list" id="trustChecklist">
           <li><i class="fa-solid fa-check"></i> Zamonaviy va amaliyotga yo'naltirilgan o'quv dasturi</li>
           <li><i class="fa-solid fa-check"></i> Tajribali va o'z sohasining mutaxassisi bo'lgan o'qituvchilar</li>
           <li><i class="fa-solid fa-check"></i> Kichik guruhlarda individual yondashuv</li>
           <li><i class="fa-solid fa-check"></i> Kurs yakunida sertifikat va portfolio loyihalar</li>
         </ul>
         <a href="#courses" class="btn-lime">
-          <i class="fa-solid fa-book-open"></i> Kurslar bilan tanishish
+          <i class="fa-solid fa-book-open"></i> <span id="aboutButtonText">Kurslar bilan tanishish</span>
         </a>
       </div>
       <div class="trust-visual reveal">
-        <img src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&w=700&q=80" alt="Chust One Academy o'quv jarayoni" class="hero-card-image" loading="lazy" style="height: 380px;" />
+        <img src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&w=700&q=80" alt="Chust One Academy o'quv jarayoni" class="hero-card-image" loading="lazy" style="height: 380px;" id="aboutImage" />
         <div class="trust-badge-float">
-          <span class="num">500+</span>
-          <span class="label">Muvaffaqiyatli bitiruvchilar</span>
+          <span class="num" id="aboutBadgeNumber">500+</span>
+          <span class="label" id="aboutBadgeLabel">Muvaffaqiyatli bitiruvchilar</span>
         </div>
       </div>
     </div>
@@ -1504,10 +1501,10 @@
   <section class="audience-section">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-tag">KIMLAR UCHUN</span>
-        <h3 class="section-title">Ushbu Kurslar Kimlar Uchun Mos?</h3>
+        <span class="section-tag" id="audienceTag">KIMLAR UCHUN</span>
+        <h3 class="section-title" id="audienceTitle">Ushbu Kurslar Kimlar Uchun Mos?</h3>
       </div>
-      <div class="audience-grid">
+      <div class="audience-grid" id="audienceGrid">
         <div class="audience-card reveal">
           <i class="fa-solid fa-user-graduate"></i>
           <h4>Maktab o'quvchilari</h4>
@@ -1534,7 +1531,7 @@
 
   <!-- Stats Section -->
   <section class="stats-section">
-    <div class="container stats-grid">
+    <div class="container stats-grid" id="statsGrid">
       <div>
         <div class="stat-number">500+</div>
         <div class="stat-label">Muvaffaqiyatli Bitiruvchilar</div>
@@ -1562,7 +1559,7 @@
         <h3 class="section-title">O'zingizga Mos IT va Media Kursini Tanlang</h3>
       </div>
 
-      <div class="courses-grid">
+      <div class="courses-grid" id="coursesGrid">
         <!-- Course 1 -->
         <div class="course-card reveal">
           <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80" alt="Kompyuter Savodxonligi" class="course-img" loading="lazy" />
@@ -1577,7 +1574,7 @@
             </ul>
             <div class="course-footer">
               <span class="course-price">290 000 UZS / oy</span>
-              <button onclick="openApplyModal('Kompyuter savodxonligi')" class="btn-lime">Kursga yozilish</button>
+              <button onclick="openApplyModal(null, 'Kompyuter savodxonligi')" class="btn-lime">Kursga yozilish</button>
             </div>
           </div>
         </div>
@@ -1596,7 +1593,7 @@
             </ul>
             <div class="course-footer">
               <span class="course-price">320 000 UZS / oy</span>
-              <button onclick="openApplyModal('Mobilografiya')" class="btn-lime">Kursga yozilish</button>
+              <button onclick="openApplyModal(null, 'Mobilografiya')" class="btn-lime">Kursga yozilish</button>
             </div>
           </div>
         </div>
@@ -1615,7 +1612,7 @@
             </ul>
             <div class="course-footer">
               <span class="course-price">300 000 UZS / oy</span>
-              <button onclick="openApplyModal('Instagram & Target')" class="btn-lime">Kursga yozilish</button>
+              <button onclick="openApplyModal(null, 'Instagram &amp; Target')" class="btn-lime">Kursga yozilish</button>
             </div>
           </div>
         </div>
@@ -1627,10 +1624,10 @@
   <section class="benefits-section">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-tag">AFZALLIKLARIMIZ</span>
-        <h3 class="section-title">Nima Uchun Bizning Kurslarni Tanlashadi?</h3>
+        <span class="section-tag" id="benefitsTag">AFZALLIKLARIMIZ</span>
+        <h3 class="section-title" id="benefitsTitle">Nima Uchun Bizning Kurslarni Tanlashadi?</h3>
       </div>
-      <div class="benefits-grid">
+      <div class="benefits-grid" id="benefitsGrid">
         <div class="benefit-item reveal">
           <div class="benefit-num">1</div>
           <div>
@@ -1667,10 +1664,10 @@
   <section class="schedule-section" id="schedule">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-tag">DARS JADVALI</span>
-        <h3 class="section-title">Sizga Qulay Vaqtni Tanlang</h3>
+        <span class="section-tag" id="scheduleTag">DARS JADVALI</span>
+        <h3 class="section-title" id="scheduleTitle">Sizga Qulay Vaqtni Tanlang</h3>
       </div>
-      <div class="schedule-grid">
+      <div class="schedule-grid" id="scheduleGrid">
         <div class="schedule-card reveal">
           <i class="fa-solid fa-clock"></i>
           <div>
@@ -1700,10 +1697,10 @@
   <section class="features-section">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-tag">DASTUR XUSUSIYATLARI</span>
-        <h3 class="section-title">O'quv Jarayonining Afzalliklari</h3>
+        <span class="section-tag" id="featuresTag">DASTUR XUSUSIYATLARI</span>
+        <h3 class="section-title" id="featuresTitle">O'quv Jarayonining Afzalliklari</h3>
       </div>
-      <div class="features-grid">
+      <div class="features-grid" id="featuresGrid">
         <div class="feature-card reveal">
           <i class="fa-solid fa-chalkboard-user"></i>
           <h4>Amaliy mashg'ulotlar</h4>
@@ -1727,10 +1724,10 @@
   <section class="testimonials-section" id="reviews">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-tag">MIJOZLAR FIKRI</span>
-        <h3 class="section-title">O'quvchilarimiz Nima Deydi?</h3>
+        <span class="section-tag" id="testimonialsTag">MIJOZLAR FIKRI</span>
+        <h3 class="section-title" id="testimonialsTitle">O'quvchilarimiz Nima Deydi?</h3>
       </div>
-      <div class="testimonials-grid">
+      <div class="testimonials-grid" id="testimonialsGrid">
         <div class="testimonial-video reveal">
           <iframe src="https://www.youtube.com/embed/lixf3bz9wJE" title="O'quvchi fikri 1" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
@@ -1759,7 +1756,7 @@
             <i class="fa-solid fa-location-dot"></i>
             <div>
               <h4>Manzil va Mo'ljal</h4>
-              <p>Chust shahrida, Book Kafee yonida, Ilhom Travel binosida.</p>
+              <p id="locationAddress">Chust shahrida, Book Kafee yonida, Ilhom Travel binosida.</p>
             </div>
           </div>
 
@@ -1767,7 +1764,7 @@
             <i class="fa-solid fa-phone"></i>
             <div>
               <h4>Bog'lanish uchun telefonlar</h4>
-              <p>+998 (99) 972 52 22</p>
+              <p id="locationPhone">+998 (99) 972 52 22</p>
             </div>
           </div>
 
@@ -1775,18 +1772,18 @@
             <i class="fa-paper-plane"></i>
             <div>
               <h4>Telegram va Instagram</h4>
-              <p>@Kompyuter_Kursi15 | @Chust_One_Academy</p>
+              <p id="locationSocial">@Kompyuter_Kursi15 | @Chust_One_Academy</p>
             </div>
           </div>
 
-          <a href="https://yandex.com/maps/?text=Chust+One+Academy" target="_blank" class="btn-lime" style="width: 100%; justify-content: center;">
+          <a href="https://yandex.com/maps/?text=Chust+One+Academy" target="_blank" class="btn-lime" style="width: 100%; justify-content: center;" id="locationMapsBtn">
             <i class="fa-solid fa-map-location-dot"></i> Google Maps / Yandex Mapsda Ochish
           </a>
         </div>
       </div>
 
       <div class="reveal">
-        <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80" alt="Chust One Academy Bino" class="hero-card-image" loading="lazy" />
+        <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80" alt="Chust One Academy Bino" class="hero-card-image" loading="lazy" id="locationImage" />
       </div>
     </div>
   </section>
@@ -1798,10 +1795,10 @@
       <p>Android va iOS (iPhone) smartfoningiz uchun rasmiy mobil ilovamizni yuklab oling yoki saqlab oling!</p>
       
       <div class="download-buttons">
-        <a href="https://one.temdon.uz/download/app-release.apk" class="btn-lime" style="font-size: 16px; padding: 14px 28px;">
+        <a href="https://chustone.uz/download/app-release.apk" class="btn-lime" style="font-size: 16px; padding: 14px 28px;">
           <i class="fa-brands fa-android"></i> Android APK Yuklab Olish (51.4 MB)
         </a>
-        <a href="https://one.temdon.uz/app/" onclick="return openIosModal(event)" class="btn-ios" style="font-size: 16px; padding: 14px 28px; display: inline-flex; align-items: center; gap: 8px;">
+        <a href="https://chustone.uz/app/" onclick="return openIosModal(event)" class="btn-ios" style="font-size: 16px; padding: 14px 28px; display: inline-flex; align-items: center; gap: 8px;">
           <i class="fa-brands fa-apple"></i> iOS iPhone uchun Yuklash
         </a>
       </div>
@@ -1824,6 +1821,10 @@
           <div class="form-group">
             <label for="contactPhone">Telefon Raqamingiz *</label>
             <input type="text" id="contactPhone" required placeholder="+998 99 123 45 67" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="contactCourse">Qaysi kurs qiziqtiradi? *</label>
+            <select id="contactCourse" required class="form-control"></select>
           </div>
           <button type="submit" class="btn-lime" style="width: 100%; justify-content: center; padding: 14px; margin-top: 10px;">
             Yuborish <i class="fa-solid fa-paper-plane"></i>
@@ -1856,7 +1857,7 @@
           <p style="font-size:13px;"><strong style="color:var(--lime-primary);">"Bosh ekranga qo'shish"</strong> (Add to Home Screen) ni tanlang</p>
         </div>
       </div>
-      <a href="https://one.temdon.uz/app/" class="btn-lime" style="width:100%; justify-content:center; padding:14px; display:flex; align-items:center;">
+      <a href="https://chustone.uz/app/" class="btn-lime" style="width:100%; justify-content:center; padding:14px; display:flex; align-items:center;">
         Ilovani ochish <i class="fa-solid fa-arrow-right"></i>
       </a>
     </div>
@@ -1870,6 +1871,7 @@
       <p id="modalCourseTitle" style="color:var(--lime-primary); font-size:13px; font-weight:700; margin-bottom:18px;"></p>
 
       <form id="applyForm" onsubmit="submitForm(event)">
+        <input type="hidden" id="applyCourseId" value="">
         <div class="form-group">
           <label>Ism va Familiyangiz *</label>
           <input type="text" id="stdName" required placeholder="Masalan: Jasur Karimov" class="form-control">
@@ -1902,10 +1904,7 @@
       <div class="footer-grid">
         <div class="footer-col footer-about">
           <div class="logo-group">
-            <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-              <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="#041426" stroke="#C6F432" stroke-width="6" />
-              <polygon points="50,22 75,36.5 75,63.5 50,78 25,63.5 25,36.5" fill="#C6F432" />
-            </svg>
+            <img src="/logo.png" alt="Chust One Academy" width="36" height="36" />
             <div class="logo-text">
               <h1 style="font-size: 18px;">Chust One</h1>
               <span>ACADEMY</span>
@@ -1913,9 +1912,9 @@
           </div>
           <p>Chust shahridagi zamonaviy IT va Media akademiyasi. Bilim bilan kelajagingizni yorug' qiling!</p>
           <div class="footer-social">
-            <a href="https://t.me/Kompyuter_Kursi15" target="_blank" rel="noreferrer" aria-label="Telegram"><i class="fa-brands fa-telegram"></i></a>
-            <a href="https://instagram.com/Chust_One_Academy" target="_blank" rel="noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
-            <a href="tel:+998999725222" aria-label="Telefon"><i class="fa-solid fa-phone"></i></a>
+            <a href="https://t.me/Kompyuter_Kursi15" target="_blank" rel="noreferrer" aria-label="Telegram" id="footerSocialTelegram"><i class="fa-brands fa-telegram"></i></a>
+            <a href="https://instagram.com/Chust_One_Academy" target="_blank" rel="noreferrer" aria-label="Instagram" id="footerSocialInstagram"><i class="fa-brands fa-instagram"></i></a>
+            <a href="tel:+998999725222" aria-label="Telefon" id="footerSocialPhone"><i class="fa-solid fa-phone"></i></a>
           </div>
         </div>
 
@@ -1934,24 +1933,24 @@
         <div class="footer-col">
           <h5>Aloqa</h5>
           <ul>
-            <li><span><i class="fa-solid fa-phone"></i> +998 (99) 972 52 22</span></li>
-            <li><span><i class="fa-solid fa-location-dot"></i> Chust, Book Kafee yonida</span></li>
-            <li><a href="https://t.me/Kompyuter_Kursi15" target="_blank" rel="noreferrer"><i class="fa-brands fa-telegram"></i> @Kompyuter_Kursi15</a></li>
+            <li><span><i class="fa-solid fa-phone"></i> <span id="footerPhone">+998 (99) 972 52 22</span></span></li>
+            <li><span><i class="fa-solid fa-location-dot"></i> <span id="footerAddress">Chust, Book Kafee yonida</span></span></li>
+            <li><a href="https://t.me/Kompyuter_Kursi15" target="_blank" rel="noreferrer" id="footerTelegram"><i class="fa-brands fa-telegram"></i> <span id="footerTelegramText">@Kompyuter_Kursi15</span></a></li>
           </ul>
         </div>
 
         <div class="footer-col">
           <h5>Ilovani yuklab olish</h5>
           <ul>
-            <li><a href="https://one.temdon.uz/download/app-release.apk"><i class="fa-brands fa-android"></i> Android APK</a></li>
-            <li><a href="https://one.temdon.uz/app/" onclick="return openIosModal(event)"><i class="fa-brands fa-apple"></i> iOS iPhone</a></li>
+            <li><a href="https://chustone.uz/download/app-release.apk"><i class="fa-brands fa-android"></i> Android APK</a></li>
+            <li><a href="https://chustone.uz/app/" onclick="return openIosModal(event)"><i class="fa-brands fa-apple"></i> iOS iPhone</a></li>
           </ul>
         </div>
       </div>
 
       <div class="footer-bottom">
         <span>&copy; 2026 Chust One Academy. Barcha huquqlar himoyalangan.</span>
-        <span>Chust shahrida bilim bilan kelajagingni yor!</span>
+        <span><a href="/privacy.html" style="color: inherit;">Maxfiylik siyosati</a></span>
       </div>
     </div>
   </footer>
@@ -2015,8 +2014,9 @@
     }
 
     // ---------------- Course apply modal ----------------
-    function openApplyModal(courseName) {
+    function openApplyModal(courseId, courseName) {
       document.getElementById('modalCourseTitle').innerText = courseName;
+      document.getElementById('applyCourseId').value = courseId || '';
       document.getElementById('applyModal').classList.add('active');
       lockScroll();
       setTimeout(() => document.getElementById('stdName')?.focus(), 50);
@@ -2041,18 +2041,32 @@
       const name = document.getElementById('stdName').value;
       const phone = document.getElementById('stdPhone').value;
       const schedule = document.getElementById('stdSchedule').value;
+      const courseId = document.getElementById('applyCourseId').value;
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalLabel = submitBtn.innerHTML;
 
+      if (!courseId) {
+        alert('❌ Kurs ma\'lumotlari yuklanmadi. Sahifani yangilab, qaytadan urinib ko\'ring.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Yuborilmoqda...';
       try {
         const res = await fetch('/api/v1/enrollments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studentName: name, phone: phone, preferredTime: schedule })
+          body: JSON.stringify({ studentName: name, phone: phone, preferredTime: schedule, courseId: courseId })
         });
+        if (!res.ok) throw new Error('request failed');
         alert('✅ Arizangiz muvaffaqiyatli qabul qilindi! Tez orada Chust One menejeri bog\'lanadi.');
+        e.target.reset();
         closeApplyModal();
       } catch (err) {
-        alert('✅ Arizangiz qabul qilindi!');
-        closeApplyModal();
+        alert('❌ Arizani yuborishda xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring yoki bizga qo\'ng\'iroq qiling.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalLabel;
       }
     }
 
@@ -2060,22 +2074,30 @@
       e.preventDefault();
       const name = document.getElementById('contactName').value;
       const phone = document.getElementById('contactPhone').value;
+      const courseId = document.getElementById('contactCourse').value;
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalLabel = submitBtn.innerHTML;
+
+      if (!courseId) {
+        alert('❌ Kurs ma\'lumotlari yuklanmadi. Sahifani yangilab, qaytadan urinib ko\'ring.');
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.innerHTML = 'Yuborilmoqda...';
 
       try {
-        await fetch('/api/v1/enrollments', {
+        const res = await fetch('/api/v1/enrollments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studentName: name, phone: phone, preferredTime: "Umumiy so'rov (bog'lanish formasi)" })
+          body: JSON.stringify({ studentName: name, phone: phone, preferredTime: "Umumiy so'rov (bog'lanish formasi)", courseId: courseId })
         });
-      } catch (err) {
-        // Network errors are non-fatal here — we still confirm receipt to the user.
-      } finally {
+        if (!res.ok) throw new Error('request failed');
         alert('✅ So\'rovingiz qabul qilindi! Operatorlarimiz tez orada siz bilan bog\'lanadi.');
         e.target.reset();
+      } catch (err) {
+        alert('❌ So\'rovni yuborishda xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring yoki bizga qo\'ng\'iroq qiling.');
+      } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalLabel;
       }
@@ -2117,6 +2139,316 @@
     } else {
       document.querySelectorAll('.reveal').forEach(el => el.classList.add('in-view'));
     }
+
+    // ---------------- Live content from the admin panel ----------------
+    // This page used to have the course list, prices, images and contact info
+    // hardcoded. Admin edits never showed up here even though they showed up
+    // instantly in the mobile app. Both now read from the same backend API.
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el && value) el.textContent = value;
+    }
+    function setSafeHref(id, url) {
+      const el = document.getElementById(id);
+      if (el && /^(https?:|tel:|mailto:)/i.test(url || '')) el.href = url;
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/v1/settings');
+        const json = await res.json();
+        const s = json && json.data;
+        if (!s) return;
+
+        setText('navPhoneText', s.mainPhone);
+        setSafeHref('navPhone', s.mainPhone ? `tel:${s.mainPhone.replace(/[^\d+]/g, '')}` : null);
+
+        if (s.heroTitleUz) {
+          const words = s.heroTitleUz.trim().split(' ');
+          const last = words.pop();
+          document.getElementById('heroTitle').innerHTML = '';
+          document.getElementById('heroTitle').append(words.join(' ') + ' ');
+          const span = document.createElement('span');
+          span.textContent = last;
+          document.getElementById('heroTitle').append(span);
+        }
+        setText('heroSubtitle', s.heroSubtitleUz);
+        if (s.heroBannerImage) document.getElementById('heroImage').src = s.heroBannerImage;
+
+        if (s.buildingImageUrl) document.getElementById('locationImage').src = s.buildingImageUrl;
+        setText('locationAddress', s.addressLandmarkUz);
+        setText('locationPhone', s.mainPhone);
+        if (s.telegramUser || s.instagramUser) {
+          setText('locationSocial', [s.telegramUser, s.instagramUser].filter(Boolean).join(' | '));
+        }
+        setSafeHref('locationMapsBtn', s.mapLocationUrl);
+
+        setText('aboutTag', s.aboutTagUz);
+        setText('aboutTitle', s.aboutTitleUz);
+        setText('aboutIntro', s.aboutIntroUz);
+        setText('aboutBadgeNumber', s.aboutBadgeNumberUz);
+        setText('aboutBadgeLabel', s.aboutBadgeLabelUz);
+        setText('aboutButtonText', s.aboutButtonTextUz);
+        if (s.aboutImageUrl) document.getElementById('aboutImage').src = s.aboutImageUrl;
+
+        setText('audienceTag', s.audienceTagUz);
+        setText('audienceTitle', s.audienceTitleUz);
+        setText('benefitsTag', s.benefitsTagUz);
+        setText('benefitsTitle', s.benefitsTitleUz);
+        setText('scheduleTag', s.scheduleTagUz);
+        setText('scheduleTitle', s.scheduleTitleUz);
+        setText('featuresTag', s.featuresTagUz);
+        setText('featuresTitle', s.featuresTitleUz);
+        setText('testimonialsTag', s.testimonialsTagUz);
+        setText('testimonialsTitle', s.testimonialsTitleUz);
+
+        setText('footerPhone', s.mainPhone);
+        setText('footerAddress', s.addressLandmarkUz);
+        setText('footerTelegramText', s.telegramUser);
+        setSafeHref('footerTelegram', s.telegramUser ? `https://t.me/${s.telegramUser.replace('@', '')}` : null);
+        setSafeHref('footerSocialTelegram', s.telegramUser ? `https://t.me/${s.telegramUser.replace('@', '')}` : null);
+        setSafeHref('footerSocialInstagram', s.instagramUser ? `https://instagram.com/${s.instagramUser.replace('@', '')}` : null);
+        setSafeHref('footerSocialPhone', s.mainPhone ? `tel:${s.mainPhone.replace(/[^\d+]/g, '')}` : null);
+      } catch (err) {
+        // Backend unreachable — keep the static copy already in the page.
+        console.warn('Settings could not be loaded, showing default content.', err);
+      }
+    }
+
+    function formatPrice(n) {
+      return Math.round(n).toLocaleString('uz-UZ').replace(/,/g, ' ') + " so'm / oy";
+    }
+
+    function buildCourseCard(course) {
+      const card = document.createElement('div');
+      card.className = 'course-card';
+
+      const img = document.createElement('img');
+      img.src = course.coverImage;
+      img.alt = course.titleUz;
+      img.className = 'course-img';
+      img.loading = 'lazy';
+      card.append(img);
+
+      const body = document.createElement('div');
+      body.className = 'course-body';
+
+      const category = document.createElement('span');
+      category.className = 'course-category';
+      category.textContent = (course.category?.nameUz || '').toUpperCase();
+      body.append(category);
+
+      const name = document.createElement('h4');
+      name.className = 'course-name';
+      name.textContent = course.titleUz;
+      body.append(name);
+
+      const desc = document.createElement('p');
+      desc.className = 'course-desc';
+      desc.textContent = course.subtitleUz || course.descriptionUz || '';
+      body.append(desc);
+
+      const topics = (course.modules || [])
+        .flatMap(m => m.topics || [])
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        .slice(0, 3);
+      if (topics.length) {
+        const ul = document.createElement('ul');
+        ul.className = 'course-topics';
+        topics.forEach(t => {
+          const li = document.createElement('li');
+          li.innerHTML = '<i class="fa-solid fa-check-circle"></i> ';
+          li.append(t.titleUz);
+          ul.append(li);
+        });
+        body.append(ul);
+      }
+
+      const footer = document.createElement('div');
+      footer.className = 'course-footer';
+
+      const price = document.createElement('span');
+      price.className = 'course-price';
+      price.textContent = formatPrice(course.discountPrice ?? course.price);
+      footer.append(price);
+
+      const btn = document.createElement('button');
+      btn.className = 'btn-lime';
+      btn.textContent = 'Kursga yozilish';
+      btn.onclick = () => openApplyModal(course.id, course.titleUz);
+      footer.append(btn);
+
+      body.append(footer);
+      card.append(body);
+      return card;
+    }
+
+    async function loadCourses() {
+      try {
+        const res = await fetch('/api/v1/courses');
+        const json = await res.json();
+        const courses = json && json.data;
+        if (!Array.isArray(courses) || courses.length === 0) return;
+
+        const grid = document.getElementById('coursesGrid');
+        grid.innerHTML = '';
+        courses.forEach(course => grid.append(buildCourseCard(course)));
+
+        const select = document.getElementById('contactCourse');
+        if (select) {
+          select.innerHTML = '';
+          courses.forEach(course => {
+            const opt = document.createElement('option');
+            opt.value = course.id;
+            opt.textContent = course.titleUz;
+            select.append(opt);
+          });
+        }
+      } catch (err) {
+        // Backend unreachable — keep the 3 static example cards already in the page.
+        console.warn('Courses could not be loaded, showing default content.', err);
+      }
+    }
+
+    // Accepts any YouTube link format (watch?v=, youtu.be/, shorts/, already-embed)
+    // and normalizes it to the /embed/ form required for iframe embedding, so a
+    // video saved with a non-embed link (which YouTube refuses to frame, leaving
+    // a blank white card) still displays correctly.
+    function toYoutubeEmbedUrl(url) {
+      if (!url) return '';
+      const trimmed = url.trim();
+      const idMatch =
+        trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+        trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
+        trimmed.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/) ||
+        trimmed.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+      return idMatch ? 'https://www.youtube.com/embed/' + idMatch[1] : trimmed;
+    }
+
+    async function fetchBlocks(section) {
+      try {
+        const res = await fetch('/api/v1/content-blocks?section=' + encodeURIComponent(section));
+        const json = await res.json();
+        return Array.isArray(json && json.data) ? json.data : [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function renderIconGrid(gridId, cardClass, blocks) {
+      const grid = document.getElementById(gridId);
+      grid.innerHTML = '';
+      blocks.forEach(b => {
+        const card = document.createElement('div');
+        card.className = cardClass + ' reveal in-view';
+        const icon = document.createElement('i');
+        icon.className = b.iconName || 'fa-solid fa-circle';
+        const h4 = document.createElement('h4');
+        h4.textContent = b.titleUz || '';
+        const p = document.createElement('p');
+        p.textContent = b.bodyUz || '';
+        card.append(icon, h4, p);
+        grid.append(card);
+      });
+    }
+
+    async function loadContentBlocks() {
+      const [trust, audience, stats, benefits, schedule, features, testimonials] = await Promise.all([
+        fetchBlocks('TRUST_BULLET'), fetchBlocks('AUDIENCE'), fetchBlocks('STAT'),
+        fetchBlocks('BENEFIT'), fetchBlocks('SCHEDULE'), fetchBlocks('FEATURE'), fetchBlocks('TESTIMONIAL'),
+      ]);
+
+      if (trust.length) {
+        const ul = document.getElementById('trustChecklist');
+        ul.innerHTML = '';
+        trust.forEach(b => {
+          const li = document.createElement('li');
+          const icon = document.createElement('i');
+          icon.className = b.iconName || 'fa-solid fa-check';
+          li.append(icon, ' ' + (b.titleUz || ''));
+          ul.append(li);
+        });
+      }
+
+      if (audience.length) renderIconGrid('audienceGrid', 'audience-card', audience);
+      if (features.length) renderIconGrid('featuresGrid', 'feature-card', features);
+
+      if (stats.length) {
+        const grid = document.getElementById('statsGrid');
+        grid.innerHTML = '';
+        stats.forEach(b => {
+          const wrap = document.createElement('div');
+          const num = document.createElement('div');
+          num.className = 'stat-number';
+          num.textContent = b.titleUz || '';
+          const label = document.createElement('div');
+          label.className = 'stat-label';
+          label.textContent = b.bodyUz || '';
+          wrap.append(num, label);
+          grid.append(wrap);
+        });
+      }
+
+      if (benefits.length) {
+        const grid = document.getElementById('benefitsGrid');
+        grid.innerHTML = '';
+        benefits.forEach((b, i) => {
+          const item = document.createElement('div');
+          item.className = 'benefit-item reveal in-view';
+          const numEl = document.createElement('div');
+          numEl.className = 'benefit-num';
+          numEl.textContent = String(i + 1);
+          const body = document.createElement('div');
+          const h4 = document.createElement('h4');
+          h4.textContent = b.titleUz || '';
+          const p = document.createElement('p');
+          p.textContent = b.bodyUz || '';
+          body.append(h4, p);
+          item.append(numEl, body);
+          grid.append(item);
+        });
+      }
+
+      if (schedule.length) {
+        const grid = document.getElementById('scheduleGrid');
+        grid.innerHTML = '';
+        schedule.forEach(b => {
+          const card = document.createElement('div');
+          card.className = 'schedule-card reveal in-view';
+          const icon = document.createElement('i');
+          icon.className = b.iconName || 'fa-solid fa-clock';
+          const body = document.createElement('div');
+          const h4 = document.createElement('h4');
+          h4.textContent = b.titleUz || '';
+          const p = document.createElement('p');
+          p.textContent = b.bodyUz || '';
+          body.append(h4, p);
+          card.append(icon, body);
+          grid.append(card);
+        });
+      }
+
+      if (testimonials.length) {
+        const grid = document.getElementById('testimonialsGrid');
+        grid.innerHTML = '';
+        testimonials.forEach(b => {
+          const wrap = document.createElement('div');
+          wrap.className = 'testimonial-video reveal in-view';
+          const iframe = document.createElement('iframe');
+          iframe.src = toYoutubeEmbedUrl(b.mediaUrl);
+          iframe.title = b.titleUz || '';
+          iframe.loading = 'lazy';
+          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+          iframe.allowFullscreen = true;
+          wrap.append(iframe);
+          grid.append(wrap);
+        });
+      }
+    }
+
+    loadSettings();
+    loadCourses();
+    loadContentBlocks();
   </script>
 </body>
 </html>

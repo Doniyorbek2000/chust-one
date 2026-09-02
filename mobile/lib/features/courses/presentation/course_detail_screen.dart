@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/providers/auth_provider.dart';
+import '../../../core/storage/storage_service.dart';
 
 class CourseDetailScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -34,6 +36,9 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     'Kechki (17:00 - 19:00)',
   ];
 
+  final _storage = StorageService();
+  String get _cacheKey => 'course_${widget.courseId}';
+
   @override
   void initState() {
     super.initState();
@@ -41,25 +46,42 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     _phoneController = TextEditingController();
     _ageController = TextEditingController();
     _addressController = TextEditingController();
+    _loadCachedCourse();
     _fetchCourse();
+  }
+
+  Future<void> _loadCachedCourse() async {
+    final cached = await _storage.getCache(_cacheKey);
+    if (cached != null && mounted) {
+      setState(() {
+        _course = cached as Map<String, dynamic>;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchCourse() async {
     try {
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get('/courses/${widget.courseId}');
+      final data = response.data['data'] as Map<String, dynamic>;
       if (mounted) {
         setState(() {
-          _course = response.data['data'] as Map<String, dynamic>;
+          _course = data;
           _isLoading = false;
         });
       }
+      _storage.saveCache(_cacheKey, data);
     } catch (_) {
-      if (mounted) {
+      // Offline or request failed — keep showing the cached course (if any)
+      // loaded above instead of an error state.
+      if (mounted && _course == null) {
         setState(() {
           _loadError = 'Kurs ma\'lumotlarini yuklab bo\'lmadi';
           _isLoading = false;
         });
+      } else if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -414,12 +436,16 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
 
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: Image.network(
-                course['coverImage'] as String? ?? '',
+              child: CachedNetworkImage(
+                imageUrl: course['coverImage'] as String? ?? '',
                 width: double.infinity,
                 height: 220,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+                placeholder: (context, url) => Container(
+                  height: 220,
+                  color: AppColors.navy800,
+                ),
+                errorWidget: (context, url, error) => Container(
                   height: 220,
                   color: AppColors.navy800,
                   child: const Icon(Icons.school, color: AppColors.primaryLime, size: 60),

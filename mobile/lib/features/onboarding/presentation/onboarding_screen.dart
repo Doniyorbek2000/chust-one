@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/academy_logo.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/storage/storage_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -20,10 +22,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _ctaText = 'Boshlash';
   String _secondaryText = 'Kirish';
 
+  final _storage = StorageService();
+
   @override
   void initState() {
     super.initState();
+    _loadCachedData();
     _fetchDynamicOnboardingData();
+  }
+
+  void _applyData(Map<String, dynamic> data) {
+    _title = data['onboardingTitleUz'] ?? _title;
+    _subtitle = data['onboardingSubtitleUz'] ?? _subtitle;
+    _imageUrl = data['onboardingImageUrl'] ?? _imageUrl;
+    _ctaText = data['onboardingCtaTextUz'] ?? _ctaText;
+    _secondaryText = data['onboardingSecondaryUz'] ?? _secondaryText;
+  }
+
+  Future<void> _loadCachedData() async {
+    final cached = await _storage.getCache('app_settings');
+    if (cached != null && mounted) {
+      setState(() => _applyData(cached as Map<String, dynamic>));
+    }
   }
 
   Future<void> _fetchDynamicOnboardingData() async {
@@ -33,16 +53,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'];
         if (mounted && data != null) {
-          setState(() {
-            _title = data['onboardingTitleUz'] ?? _title;
-            _subtitle = data['onboardingSubtitleUz'] ?? _subtitle;
-            _imageUrl = data['onboardingImageUrl'] ?? _imageUrl;
-            _ctaText = data['onboardingCtaTextUz'] ?? _ctaText;
-            _secondaryText = data['onboardingSecondaryUz'] ?? _secondaryText;
-          });
+          setState(() => _applyData(data as Map<String, dynamic>));
         }
+        if (data != null) _storage.saveCache('app_settings', data);
       }
-    } catch (_) {}
+    } catch (_) {
+      // Offline or request failed — keep showing cached/default content.
+    }
   }
 
   @override
@@ -88,10 +105,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(28),
-                            child: Image.network(
-                              _imageUrl,
+                            child: CachedNetworkImage(
+                              imageUrl: _imageUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
+                              placeholder: (context, url) => Container(
+                                color: AppColors.navy800,
+                              ),
+                              errorWidget: (context, url, error) => Container(
                                 color: AppColors.navy800,
                                 child: const Icon(Icons.school, color: AppColors.primaryLime, size: 60),
                               ),

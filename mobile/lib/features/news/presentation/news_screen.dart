@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/storage/storage_service.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -20,9 +22,12 @@ class _NewsScreenState extends State<NewsScreen> {
     'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
   ];
 
+  final _storage = StorageService();
+
   @override
   void initState() {
     super.initState();
+    _loadCachedNews();
     _fetchNewsFromApi();
   }
 
@@ -32,29 +37,50 @@ class _NewsScreenState extends State<NewsScreen> {
     return '${date.day.toString().padLeft(2, '0')} ${_months[date.month - 1]}, ${date.year}';
   }
 
+  // Shows the last-fetched news list immediately (works offline) while the
+  // live fetch below refreshes it in the background.
+  Future<void> _loadCachedNews() async {
+    final cached = await _storage.getCache('news_list');
+    if (cached != null && mounted) {
+      setState(() {
+        _newsItems = (cached as List<dynamic>).cast<Map<String, dynamic>>();
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _fetchNewsFromApi() async {
     try {
       final dio = Dio();
       final response = await dio.get('${AppConstants.apiBaseUrl}/news');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List list = response.data['data'] ?? [];
+        final mapped = list.map<Map<String, dynamic>>((item) => {
+          'id': item['id'],
+          'title': item['titleUz'],
+          'content': item['contentUz'],
+          'date': _formatDate(item['createdAt'] as String?),
+          'image': item['coverImage'],
+        }).toList();
         if (mounted) {
           setState(() {
-            _newsItems = list.map<Map<String, dynamic>>((item) => {
-              'id': item['id'],
-              'title': item['titleUz'],
-              'content': item['contentUz'],
-              'date': _formatDate(item['createdAt'] as String?),
-              'image': item['coverImage'],
-            }).toList();
+            _newsItems = mapped;
             _isLoading = false;
+            _hasError = false;
           });
         }
-      } else {
+        _storage.saveCache('news_list', mapped);
+      } else if (_newsItems.isEmpty) {
         if (mounted) setState(() { _isLoading = false; _hasError = true; });
       }
     } catch (_) {
-      if (mounted) setState(() { _isLoading = false; _hasError = true; });
+      // Offline or request failed — keep showing the cached list (if any)
+      // loaded above instead of an error state.
+      if (mounted && _newsItems.isEmpty) {
+        setState(() { _isLoading = false; _hasError = true; });
+      } else if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -90,11 +116,22 @@ class _NewsScreenState extends State<NewsScreen> {
                 const SizedBox(height: 16),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    news['image'],
+                  child: CachedNetworkImage(
+                    imageUrl: news['image'],
                     width: double.infinity,
                     height: 200,
                     fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      width: double.infinity,
+                      height: 200,
+                      color: AppColors.navy700,
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: double.infinity,
+                      height: 200,
+                      color: AppColors.navy700,
+                      child: const Icon(Icons.article, color: AppColors.primaryLime, size: 40),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -204,11 +241,22 @@ class _NewsScreenState extends State<NewsScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: Image.network(
-                      news['image'] as String,
+                    child: CachedNetworkImage(
+                      imageUrl: news['image'] as String,
                       width: double.infinity,
                       height: 180,
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        width: double.infinity,
+                        height: 180,
+                        color: AppColors.navy700,
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        width: double.infinity,
+                        height: 180,
+                        color: AppColors.navy700,
+                        child: const Icon(Icons.article, color: AppColors.primaryLime, size: 40),
+                      ),
                     ),
                   ),
                   Padding(

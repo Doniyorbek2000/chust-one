@@ -37,7 +37,7 @@ ${logoBase64}
 			<key>PayloadVersion</key>
 			<integer>1</integer>
 			<key>URL</key>
-			<string>https://one.temdon.uz/app/</string>
+			<string>https://chustone.uz/app/</string>
 		</dict>
 	</array>
 	<key>PayloadDisplayName</key>

@@ -3,6 +3,20 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { api, setAuthToken, getAuthToken, uploadUrl } from '../lib/api';
 
+// Accepts any YouTube link format (watch?v=, youtu.be/, shorts/, already-embed)
+// and normalizes it to the /embed/ form YouTube requires for iframe embedding —
+// pasting a non-embed link is why saved testimonial videos rendered blank on the site.
+function toYoutubeEmbedUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  const idMatch =
+    trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+    trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
+    trimmed.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/) ||
+    trimmed.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+  return idMatch ? `https://www.youtube.com/embed/${idMatch[1]}` : trimmed;
+}
+
 interface AppSettings {
   onboardingTitleUz: string;
   onboardingSubtitleUz: string;
@@ -14,6 +28,25 @@ interface AppSettings {
   heroSubtitleUz: string;
   heroBannerImage: string;
   heroCtaTextUz: string;
+
+  aboutTagUz: string;
+  aboutTitleUz: string;
+  aboutIntroUz: string;
+  aboutImageUrl: string;
+  aboutBadgeNumberUz: string;
+  aboutBadgeLabelUz: string;
+  aboutButtonTextUz: string;
+
+  audienceTagUz: string;
+  audienceTitleUz: string;
+  benefitsTagUz: string;
+  benefitsTitleUz: string;
+  scheduleTagUz: string;
+  scheduleTitleUz: string;
+  featuresTagUz: string;
+  featuresTitleUz: string;
+  testimonialsTagUz: string;
+  testimonialsTitleUz: string;
 
   locationTitleUz: string;
   buildingImageUrl: string;
@@ -69,6 +102,17 @@ interface NewsItem {
   coverImage: string;
   isFeatured: boolean;
   createdAt: string;
+}
+
+interface ContentBlockItem {
+  id: string;
+  section: string;
+  sortOrder: number;
+  iconName?: string | null;
+  titleUz?: string | null;
+  bodyUz?: string | null;
+  mediaUrl?: string | null;
+  isActive: boolean;
 }
 
 interface UserItem {
@@ -129,6 +173,25 @@ const DEFAULT_SETTINGS: AppSettings = {
   heroBannerImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
   heroCtaTextUz: 'Kurslarni ko\'rish',
 
+  aboutTagUz: 'NEGA AYNAN BIZ',
+  aboutTitleUz: 'Nega Aynan Chust One Academy?',
+  aboutIntroUz: 'Biz Chust shahridagi zamonaviy IT va media ta\'lim markazlaridan biri sifatida, nazariyadan ko\'ra amaliyotga ko\'proq vaqt ajratamiz. Har bir talaba individual e\'tibor va real loyihalar ustida ishlash imkoniyatiga ega bo\'ladi.',
+  aboutImageUrl: 'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&w=700&q=80',
+  aboutBadgeNumberUz: '500+',
+  aboutBadgeLabelUz: 'Muvaffaqiyatli bitiruvchilar',
+  aboutButtonTextUz: 'Kurslar bilan tanishish',
+
+  audienceTagUz: 'KIMLAR UCHUN',
+  audienceTitleUz: 'Ushbu Kurslar Kimlar Uchun Mos?',
+  benefitsTagUz: 'AFZALLIKLARIMIZ',
+  benefitsTitleUz: 'Nima Uchun Bizning Kurslarni Tanlashadi?',
+  scheduleTagUz: 'DARS JADVALI',
+  scheduleTitleUz: 'Sizga Qulay Vaqtni Tanlang',
+  featuresTagUz: 'DASTUR XUSUSIYATLARI',
+  featuresTitleUz: 'O\'quv Jarayonining Afzalliklari',
+  testimonialsTagUz: 'MIJOZLAR FIKRI',
+  testimonialsTitleUz: 'O\'quvchilarimiz Nima Deydi?',
+
   locationTitleUz: 'BIZNING YANGI MANZILIMIZ:',
   buildingImageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
   addressLandmarkUz: 'Book Kafee yonida, Ilhom Travel binosida.',
@@ -175,6 +238,26 @@ const EMPTY_NEWS_FORM: Partial<NewsItem> = {
   isFeatured: false,
 };
 
+const CONTENT_SECTIONS: { key: string; label: string; icon: string }[] = [
+  { key: 'TRUST_BULLET', label: "Nega aynan biz — check-list", icon: '✅' },
+  { key: 'AUDIENCE', label: 'Kimlar uchun', icon: '👤' },
+  { key: 'STAT', label: 'Statistika', icon: '📊' },
+  { key: 'BENEFIT', label: 'Afzalliklarimiz', icon: '⭐' },
+  { key: 'SCHEDULE', label: 'Dars jadvali', icon: '🕒' },
+  { key: 'FEATURE', label: 'Dastur xususiyatlari', icon: '🧩' },
+  { key: 'TESTIMONIAL', label: 'Mijozlar fikri (video)', icon: '🎬' },
+];
+
+const EMPTY_BLOCK_FORM: Partial<ContentBlockItem> = {
+  section: 'TRUST_BULLET',
+  sortOrder: 0,
+  iconName: '',
+  titleUz: '',
+  bodyUz: '',
+  mediaUrl: '',
+  isActive: true,
+};
+
 function money(n?: number | null) {
   if (n == null || isNaN(n)) return '0 so\'m';
   return n.toLocaleString('uz-UZ') + ' so\'m';
@@ -198,15 +281,18 @@ function statusBadge(status: string) {
 // are rendered by the browser using the visitor's OS/browser language and can't
 // be overridden via CSS. This wraps a hidden input in our own styled label so
 // the button always reads in Uzbek regardless of the visitor's browser locale.
-function FileUploadButton({ id, onChange }: { id: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void }) {
+function FileUploadButton({ id, onChange, hint }: { id: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; hint?: string }) {
   return (
-    <label
-      htmlFor={id}
-      className="cursor-pointer inline-flex items-center text-xs font-semibold bg-[#C6F432] text-[#041426] rounded-xl px-4 py-2.5 hover:bg-[#b0de28] transition-colors"
-    >
-      Rasm tanlash
-      <input id={id} type="file" accept="image/*" onChange={onChange} className="hidden" />
-    </label>
+    <div>
+      <label
+        htmlFor={id}
+        className="cursor-pointer inline-flex items-center text-xs font-semibold bg-[#C6F432] text-[#041426] rounded-xl px-4 py-2.5 hover:bg-[#b0de28] transition-colors"
+      >
+        Rasm tanlash
+        <input id={id} type="file" accept="image/*" onChange={onChange} className="hidden" />
+      </label>
+      {hint && <p className="text-[11px] text-[#64748B] mt-1.5 max-w-xs">{hint}</p>}
+    </div>
   );
 }
 
@@ -218,7 +304,7 @@ export default function AdminDashboard() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  type Tab = 'cms' | 'categories' | 'courses' | 'news' | 'enrollments' | 'payments' | 'students' | 'notifications';
+  type Tab = 'cms' | 'categories' | 'sections' | 'courses' | 'news' | 'enrollments' | 'payments' | 'students' | 'notifications';
   const [activeTab, setActiveTab] = useState<Tab>('cms');
   const [savedMessage, setSavedMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
@@ -235,6 +321,10 @@ export default function AdminDashboard() {
 
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [contentBlocks, setContentBlocks] = useState<ContentBlockItem[]>([]);
+  const [activeSection, setActiveSection] = useState<string>('TRUST_BULLET');
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [blockForm, setBlockForm] = useState<Partial<ContentBlockItem>>(EMPTY_BLOCK_FORM);
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [students, setStudents] = useState<UserItem[]>([]);
@@ -249,9 +339,10 @@ export default function AdminDashboard() {
 
   const fetchAll = async () => {
     setLoadingData(true);
-    const [s, c, cr, n, u, e, p, st] = await Promise.allSettled([
+    const [s, c, cb, cr, n, u, e, p, st] = await Promise.allSettled([
       api.get('/settings'),
       api.get('/categories'),
+      api.get('/admin/content-blocks'),
       api.get('/courses'),
       api.get('/news'),
       api.get('/users'),
@@ -261,6 +352,7 @@ export default function AdminDashboard() {
     ]);
     if (s.status === 'fulfilled' && s.value.data?.data) setSettings((prev) => ({ ...prev, ...s.value.data.data }));
     if (c.status === 'fulfilled' && Array.isArray(c.value.data?.data)) setCategories(c.value.data.data);
+    if (cb.status === 'fulfilled' && Array.isArray(cb.value.data?.data)) setContentBlocks(cb.value.data.data);
     if (cr.status === 'fulfilled' && Array.isArray(cr.value.data?.data)) setCourses(cr.value.data.data);
     if (n.status === 'fulfilled' && Array.isArray(n.value.data?.data)) setNews(n.value.data.data);
     if (u.status === 'fulfilled' && Array.isArray(u.value.data?.data)) setStudents(u.value.data.data);
@@ -369,6 +461,45 @@ export default function AdminDashboard() {
       setCategories((prev) => prev.filter((c) => c.id !== id));
     } catch (err: any) {
       alert('Xatolik: ' + (err?.response?.data?.error || 'Bu kategoriyada kurslar mavjud bo\'lishi mumkin'));
+    }
+  };
+
+  // ---------------- Content block (site sections) handlers ----------------
+  const handleOpenAddBlock = () => {
+    const inSection = contentBlocks.filter((b) => b.section === activeSection);
+    setBlockForm({ ...EMPTY_BLOCK_FORM, section: activeSection, sortOrder: inSection.length + 1 });
+    setIsBlockModalOpen(true);
+  };
+  const handleEditBlock = (block: ContentBlockItem) => {
+    setBlockForm(block);
+    setIsBlockModalOpen(true);
+  };
+  const handleSaveBlock = async () => {
+    try {
+      const payload = { ...blockForm };
+      if (payload.section === 'TESTIMONIAL' && payload.mediaUrl) {
+        payload.mediaUrl = toYoutubeEmbedUrl(payload.mediaUrl);
+      }
+      if (blockForm.id) {
+        const res = await api.patch(`/admin/content-blocks/${blockForm.id}`, payload);
+        setContentBlocks((prev) => prev.map((b) => (b.id === blockForm.id ? res.data.data : b)));
+      } else {
+        const res = await api.post('/admin/content-blocks', payload);
+        setContentBlocks((prev) => [...prev, res.data.data]);
+      }
+      setIsBlockModalOpen(false);
+      flash('✅ Bo\'lim saqlandi!');
+    } catch (err: any) {
+      alert('Xatolik: ' + (err?.response?.data?.error || 'Nomalum xatolik'));
+    }
+  };
+  const handleDeleteBlock = async (id: string) => {
+    if (!confirm('Rostdan ham ushbu elementni o\'chirmoqchimisiz?')) return;
+    try {
+      await api.delete(`/admin/content-blocks/${id}`);
+      setContentBlocks((prev) => prev.filter((b) => b.id !== id));
+    } catch (err: any) {
+      alert('Xatolik: ' + (err?.response?.data?.error || 'Nomalum xatolik'));
     }
   };
 
@@ -506,10 +637,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-[#041426] flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-[#0A1D33] border border-[#1E3A5F] rounded-3xl p-8 shadow-2xl">
           <div className="flex flex-col items-center justify-center mb-6">
-            <svg width="68" height="68" viewBox="0 0 100 100" fill="none">
-              <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#C6F432" strokeWidth="6" />
-              <polygon points="50,22 75,36.5 75,63.5 50,78 25,63.5 25,36.5" fill="#C6F432" />
-            </svg>
+            <img src="/admin/logo.png" alt="Chust One Academy" width={68} height={68} />
             <h1 className="text-2xl font-bold text-white mt-4">Chust One Academy</h1>
             <p className="text-xs text-slate-400 mt-1">Admin Panel Tizimiga Kirish</p>
           </div>
@@ -580,10 +708,7 @@ export default function AdminDashboard() {
       >
         <div className="p-6 border-b border-[#1E3A5F] flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-              <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#C6F432" strokeWidth="6" />
-              <polygon points="50,22 75,36.5 75,63.5 50,78 25,63.5 25,36.5" fill="#C6F432" />
-            </svg>
+            <img src="/admin/logo.png" alt="Chust One Academy" width={36} height={36} />
             <div>
               <span className="font-bold text-lg text-white block">Chust One</span>
               <span className="text-[10px] text-[#C6F432] font-bold tracking-widest">ADMIN PANEL</span>
@@ -602,6 +727,7 @@ export default function AdminDashboard() {
           {([
             ['cms', '🖼️', 'App Welcome CMS'],
             ['categories', '🏷️', `Kategoriyalar (${categories.length})`],
+            ['sections', '🧱', `Sayt bo'limlari (${contentBlocks.length})`],
             ['courses', '📚', `Kurslar (${courses.length})`],
             ['news', '📰', `Yangiliklar (${news.length})`],
             ['students', '👥', `Talabalar (${students.length})`],
@@ -715,7 +841,7 @@ export default function AdminDashboard() {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Screen 1 Asosiy Rasmi (Upload)</label>
                   <div className="flex items-center space-x-4">
                     <img src={settings.onboardingImageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-[#1E3A5F]" />
-                    <FileUploadButton id="upload-onboarding-image" onChange={handleFileUpload('onboardingImageUrl')} />
+                    <FileUploadButton id="upload-onboarding-image" onChange={handleFileUpload('onboardingImageUrl')} hint="Tavsiya: 1080×1350 px (vertikal, 4:5), JPG yoki PNG format, hajmi 2 MB dan oshmasin." />
                   </div>
                 </div>
               </div>
@@ -749,9 +875,118 @@ export default function AdminDashboard() {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Hero Banner Rasmi (Upload)</label>
                   <div className="flex items-center space-x-4">
                     <img src={settings.heroBannerImage} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-[#1E3A5F]" />
-                    <FileUploadButton id="upload-hero-banner" onChange={handleFileUpload('heroBannerImage')} />
+                    <FileUploadButton id="upload-hero-banner" onChange={handleFileUpload('heroBannerImage')} hint="Tavsiya: 1200×800 px (gorizontal, 3:2), JPG yoki PNG format, hajmi 2 MB dan oshmasin." />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-[#0A1D33] border border-[#1E3A5F] rounded-2xl p-6">
+              <h2 className="text-lg font-bold mb-4 text-[#C6F432] flex items-center space-x-2">
+                <span>🤝</span>
+                <span>"Nega Aynan Biz" Bo'limi</span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Yorliq (tag)</label>
+                  <input
+                    type="text"
+                    value={settings.aboutTagUz}
+                    onChange={e => setSettings({ ...settings, aboutTagUz: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Katta sarlavha</label>
+                  <input
+                    type="text"
+                    value={settings.aboutTitleUz}
+                    onChange={e => setSettings({ ...settings, aboutTitleUz: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Kirish matni</label>
+                  <textarea
+                    rows={3}
+                    value={settings.aboutIntroUz}
+                    onChange={e => setSettings({ ...settings, aboutIntroUz: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tugma matni</label>
+                  <input
+                    type="text"
+                    value={settings.aboutButtonTextUz}
+                    onChange={e => setSettings({ ...settings, aboutButtonTextUz: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Значок raqami (masalan: 500+)</label>
+                  <input
+                    type="text"
+                    value={settings.aboutBadgeNumberUz}
+                    onChange={e => setSettings({ ...settings, aboutBadgeNumberUz: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Значок matni</label>
+                  <input
+                    type="text"
+                    value={settings.aboutBadgeLabelUz}
+                    onChange={e => setSettings({ ...settings, aboutBadgeLabelUz: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Bo'lim rasmi (Upload)</label>
+                  <div className="flex items-center space-x-4">
+                    <img src={settings.aboutImageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-[#1E3A5F]" />
+                    <FileUploadButton id="upload-about-image" onChange={handleFileUpload('aboutImageUrl')} hint="Tavsiya: 700×380 px (gorizontal), JPG yoki PNG format, hajmi 2 MB dan oshmasin." />
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-4 pt-4 border-t border-[#1E3A5F]">Check-list bandlarini "🧱 Sayt bo'limlari" tabidagi "Nega aynan biz — check-list" bo'limidan tahrirlang.</p>
+            </div>
+
+            <div className="bg-[#0A1D33] border border-[#1E3A5F] rounded-2xl p-6">
+              <h2 className="text-lg font-bold mb-4 text-[#C6F432] flex items-center space-x-2">
+                <span>🏷️</span>
+                <span>Bo'lim Sarlavhalari (Yorliq va Katta Sarlavha)</span>
+              </h2>
+              <div className="space-y-4">
+                {([
+                  ['Kimlar uchun', 'audienceTagUz', 'audienceTitleUz'],
+                  ['Afzalliklarimiz', 'benefitsTagUz', 'benefitsTitleUz'],
+                  ['Dars jadvali', 'scheduleTagUz', 'scheduleTitleUz'],
+                  ['Dastur xususiyatlari', 'featuresTagUz', 'featuresTitleUz'],
+                  ['Mijozlar fikri', 'testimonialsTagUz', 'testimonialsTitleUz'],
+                ] as [string, keyof AppSettings, keyof AppSettings][]).map(([label, tagKey, titleKey]) => (
+                  <div key={label} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pb-4 border-b border-[#1E3A5F] last:border-b-0 last:pb-0">
+                    <div className="text-xs font-bold text-slate-400">{label}</div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Yorliq (tag)</label>
+                      <input
+                        type="text"
+                        value={settings[tagKey] as string}
+                        onChange={e => setSettings({ ...settings, [tagKey]: e.target.value })}
+                        className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Katta sarlavha</label>
+                      <input
+                        type="text"
+                        value={settings[titleKey] as string}
+                        onChange={e => setSettings({ ...settings, [titleKey]: e.target.value })}
+                        className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -786,7 +1021,7 @@ export default function AdminDashboard() {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Bino rasmi (Upload)</label>
                   <div className="flex items-center space-x-4">
                     <img src={settings.buildingImageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-[#1E3A5F]" />
-                    <FileUploadButton id="upload-building-image" onChange={handleFileUpload('buildingImageUrl')} />
+                    <FileUploadButton id="upload-building-image" onChange={handleFileUpload('buildingImageUrl')} hint="Tavsiya: 1200×900 px (gorizontal, 4:3), JPG yoki PNG format, hajmi 2 MB dan oshmasin." />
                   </div>
                 </div>
 
@@ -900,6 +1135,71 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Site Sections (Content Blocks) */}
+        {activeTab === 'sections' && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {CONTENT_SECTIONS.map(sec => (
+                <button
+                  key={sec.key}
+                  onClick={() => setActiveSection(sec.key)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeSection === sec.key ? 'bg-[#C6F432] text-[#041426]' : 'bg-[#0A1D33] border border-[#1E3A5F] text-slate-300 hover:border-[#C6F432]'
+                  }`}
+                >
+                  {sec.icon} {sec.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold">
+                {CONTENT_SECTIONS.find(s => s.key === activeSection)?.icon} {CONTENT_SECTIONS.find(s => s.key === activeSection)?.label}
+              </h2>
+              <button
+                onClick={handleOpenAddBlock}
+                className="bg-[#C6F432] text-[#041426] font-bold px-4 py-2 rounded-xl text-sm hover:bg-[#b0de28] transition"
+              >
+                + Yangi Element
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {contentBlocks.filter(b => b.section === activeSection).sort((a, b) => a.sortOrder - b.sortOrder).map(block => (
+                <div key={block.id} className={`bg-[#0A1D33] border rounded-2xl p-4 space-y-2 ${block.isActive ? 'border-[#1E3A5F]' : 'border-red-500/40 opacity-60'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{activeSection === 'TESTIMONIAL' ? '🎬' : (block.iconName ? <i className={block.iconName} /> : '🔹')}</span>
+                    <span className="text-[10px] text-slate-400">#{block.sortOrder} {!block.isActive && '· yashirilgan'}</span>
+                  </div>
+                  {activeSection === 'STAT' ? (
+                    <>
+                      <h3 className="font-bold text-xl text-[#C6F432]">{block.titleUz}</h3>
+                      <p className="text-[11px] text-slate-400">{block.bodyUz}</p>
+                    </>
+                  ) : activeSection === 'TESTIMONIAL' ? (
+                    <>
+                      <h3 className="font-bold text-sm text-white">{block.titleUz}</h3>
+                      <p className="text-[11px] text-slate-400 break-all">{block.mediaUrl}</p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="font-bold text-sm text-white">{block.titleUz}</h3>
+                      <p className="text-[11px] text-slate-400 line-clamp-3">{block.bodyUz}</p>
+                    </>
+                  )}
+                  <div className="flex items-center space-x-2 pt-2">
+                    <button onClick={() => handleEditBlock(block)} className="flex-1 bg-[#1E3A5F] hover:bg-[#2A4D7B] text-white py-1.5 rounded-lg text-xs font-semibold transition">✏️ Tahrirlash</button>
+                    <button onClick={() => handleDeleteBlock(block.id)} className="bg-red-500/20 hover:bg-red-500/40 text-red-400 px-3 py-1.5 rounded-lg text-xs font-semibold transition">🗑️</button>
+                  </div>
+                </div>
+              ))}
+              {contentBlocks.filter(b => b.section === activeSection).length === 0 && (
+                <p className="text-xs text-slate-500 col-span-full">Hozircha element yo'q. "+ Yangi Element" tugmasini bosing.</p>
+              )}
             </div>
           </div>
         )}
@@ -1212,6 +1512,75 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Content Block (Site Section) Modal */}
+      {isBlockModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0A1D33] border border-[#1E3A5F] rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-[#1E3A5F] pb-3">
+              <h3 className="text-lg font-bold text-[#C6F432]">
+                {blockForm.id ? '✏️ Elementni Tahrirlash' : '➕ Yangi Element'} — {CONTENT_SECTIONS.find(s => s.key === blockForm.section)?.label}
+              </h3>
+              <button onClick={() => setIsBlockModalOpen(false)} className="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+            <div className="space-y-3 text-xs">
+              {blockForm.section === 'TESTIMONIAL' ? (
+                <>
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Video URL (istalgan YouTube havolasi) *</label>
+                    <input type="text" value={blockForm.mediaUrl || ''} onChange={e => setBlockForm({ ...blockForm, mediaUrl: e.target.value })} placeholder="https://www.youtube.com/watch?v=... yoki youtu.be/..." className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+                    <p className="text-[10px] text-slate-500 mt-1">Har qanday YouTube havolasini joylashtirsangiz bo'ladi (watch, youtu.be, shorts) — saqlashda avtomatik to'g'ri formatga o'giriladi.</p>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Sarlavha</label>
+                    <input type="text" value={blockForm.titleUz || ''} onChange={e => setBlockForm({ ...blockForm, titleUz: e.target.value })} className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+                  </div>
+                </>
+              ) : blockForm.section === 'STAT' ? (
+                <>
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Raqam (masalan: 500+) *</label>
+                    <input type="text" value={blockForm.titleUz || ''} onChange={e => setBlockForm({ ...blockForm, titleUz: e.target.value })} className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Yorliq matni</label>
+                    <input type="text" value={blockForm.bodyUz || ''} onChange={e => setBlockForm({ ...blockForm, bodyUz: e.target.value })} className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Ikonka (FontAwesome klass, masalan: fa-solid fa-user-graduate)</label>
+                    <input type="text" value={blockForm.iconName || ''} onChange={e => setBlockForm({ ...blockForm, iconName: e.target.value })} className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Sarlavha *</label>
+                    <input type="text" value={blockForm.titleUz || ''} onChange={e => setBlockForm({ ...blockForm, titleUz: e.target.value })} className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+                  </div>
+                  {blockForm.section !== 'TRUST_BULLET' && (
+                    <div>
+                      <label className="block font-semibold text-slate-300 mb-1">Matn</label>
+                      <textarea rows={2} value={blockForm.bodyUz || ''} onChange={e => setBlockForm({ ...blockForm, bodyUz: e.target.value })} className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+                    </div>
+                  )}
+                </>
+              )}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Tartib raqami</label>
+                <input type="number" value={blockForm.sortOrder ?? 0} onChange={e => setBlockForm({ ...blockForm, sortOrder: parseInt(e.target.value) || 0 })} className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#C6F432]" />
+              </div>
+              <div className="flex items-center space-x-3 pt-1">
+                <input type="checkbox" checked={blockForm.isActive ?? true} onChange={e => setBlockForm({ ...blockForm, isActive: e.target.checked })} className="w-4 h-4" />
+                <label className="font-semibold text-slate-300">Saytda ko'rinsin (faol)</label>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 pt-3 border-t border-[#1E3A5F]">
+              <button onClick={() => setIsBlockModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Bekor qilish</button>
+              <button onClick={handleSaveBlock} className="bg-[#C6F432] hover:bg-[#b0de28] text-[#041426] font-bold px-5 py-2 rounded-xl text-xs shadow-lg">💾 Saqlash</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Course Edit/Create Modal */}
       {isCourseModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
@@ -1305,7 +1674,7 @@ export default function AdminDashboard() {
                 <label className="block font-semibold text-slate-300 mb-1">Muqova Rasmi</label>
                 <div className="flex items-center space-x-3">
                   <img src={courseForm.coverImage} alt="preview" className="w-16 h-16 object-cover rounded-xl border border-[#1E3A5F]" />
-                  <FileUploadButton id="upload-course-image" onChange={handleCourseImageUpload} />
+                  <FileUploadButton id="upload-course-image" onChange={handleCourseImageUpload} hint="Tavsiya: 1200×800 px (gorizontal, 3:2), JPG yoki PNG format, hajmi 2 MB dan oshmasin — kurs kartochkasida shu nisbatda ko'rinadi." />
                 </div>
               </div>
             </div>
@@ -1364,7 +1733,7 @@ export default function AdminDashboard() {
                 <label className="block font-semibold text-slate-300 mb-1">Rasm</label>
                 <div className="flex items-center space-x-3">
                   <img src={newsForm.coverImage} alt="preview" className="w-16 h-16 object-cover rounded-xl border border-[#1E3A5F]" />
-                  <FileUploadButton id="upload-news-image" onChange={handleNewsImageUpload} />
+                  <FileUploadButton id="upload-news-image" onChange={handleNewsImageUpload} hint="Tavsiya: 1200×800 px (gorizontal, 3:2), JPG yoki PNG format, hajmi 2 MB dan oshmasin." />
                 </div>
               </div>
 

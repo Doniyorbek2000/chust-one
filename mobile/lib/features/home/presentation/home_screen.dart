@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/academy_logo.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/storage/storage_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,6 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isMaintenance = false;
 
   List<Map<String, dynamic>> _apiCourses = [];
+
+  final _storage = StorageService();
 
   // Display metadata (icon/color) for the home-screen grid, keyed by the
   // course's real titleUz so tiles always navigate using a real course id.
@@ -97,8 +101,47 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadCachedCmsData();
+    _loadCachedCourses();
     _fetchDynamicCmsData();
     _fetchCourses();
+  }
+
+  void _applySettingsData(Map<String, dynamic> data) {
+    _heroTitle = data['heroTitleUz'] ?? _heroTitle;
+    _heroSubtitle = data['heroSubtitleUz'] ?? _heroSubtitle;
+    _heroBannerImage = data['heroBannerImage'] ?? _heroBannerImage;
+    _heroCtaText = data['heroCtaTextUz'] ?? _heroCtaText;
+
+    _locationTitle = data['locationTitleUz'] ?? _locationTitle;
+    _buildingImage = data['buildingImageUrl'] ?? _buildingImage;
+    _addressLandmark = data['addressLandmarkUz'] ?? _addressLandmark;
+    _addressCity = data['addressCityUz'] ?? _addressCity;
+    _mapImage = data['mapImageUrl'] ?? _mapImage;
+    _mapLocationUrl = data['mapLocationUrl'] ?? _mapLocationUrl;
+    _contactHeader = data['contactHeaderUz'] ?? _contactHeader;
+
+    _mainPhone = data['mainPhone'] ?? _mainPhone;
+    _telegramUser = data['telegramUser'] ?? _telegramUser;
+    _telegramContact = data['telegramContact'] ?? _telegramContact;
+    _instagramUser = data['instagramUser'] ?? _instagramUser;
+    _isMaintenance = data['isMaintenance'] ?? false;
+  }
+
+  // Shows the last-known-good data instantly (works offline) while the live
+  // fetch below refreshes it in the background.
+  Future<void> _loadCachedCmsData() async {
+    final cached = await _storage.getCache('app_settings');
+    if (cached != null && mounted) {
+      setState(() => _applySettingsData(cached as Map<String, dynamic>));
+    }
+  }
+
+  Future<void> _loadCachedCourses() async {
+    final cached = await _storage.getCache('courses_list');
+    if (cached != null && mounted) {
+      setState(() => _apiCourses = (cached as List<dynamic>).cast<Map<String, dynamic>>());
+    }
   }
 
   Future<void> _fetchCourses() async {
@@ -108,10 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = (response.data['data'] as List<dynamic>).cast<Map<String, dynamic>>();
         if (mounted) setState(() => _apiCourses = data);
+        _storage.saveCache('courses_list', data);
       }
     } catch (_) {
-      // Grid/list simply render empty if courses can't be fetched; hero and
-      // location sections still work independently.
+      // Offline or request failed — the cached data loaded above (if any)
+      // keeps showing; hero and location sections still work independently.
     }
   }
 
@@ -122,30 +166,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'];
         if (mounted && data != null) {
-          setState(() {
-            _heroTitle = data['heroTitleUz'] ?? _heroTitle;
-            _heroSubtitle = data['heroSubtitleUz'] ?? _heroSubtitle;
-            _heroBannerImage = data['heroBannerImage'] ?? _heroBannerImage;
-            _heroCtaText = data['heroCtaTextUz'] ?? _heroCtaText;
-
-            _locationTitle = data['locationTitleUz'] ?? _locationTitle;
-            _buildingImage = data['buildingImageUrl'] ?? _buildingImage;
-            _addressLandmark = data['addressLandmarkUz'] ?? _addressLandmark;
-            _addressCity = data['addressCityUz'] ?? _addressCity;
-            _mapImage = data['mapImageUrl'] ?? _mapImage;
-            _mapLocationUrl = data['mapLocationUrl'] ?? _mapLocationUrl;
-            _contactHeader = data['contactHeaderUz'] ?? _contactHeader;
-
-            _mainPhone = data['mainPhone'] ?? _mainPhone;
-            _telegramUser = data['telegramUser'] ?? _telegramUser;
-            _telegramContact = data['telegramContact'] ?? _telegramContact;
-            _instagramUser = data['instagramUser'] ?? _instagramUser;
-            _isMaintenance = data['isMaintenance'] ?? false;
-          });
+          setState(() => _applySettingsData(data as Map<String, dynamic>));
         }
+        if (data != null) _storage.saveCache('app_settings', data);
       }
     } catch (_) {
-      // Keep showing default content if the CMS fetch fails.
+      // Offline or request failed — keep showing cached/default content.
     }
   }
 
@@ -294,12 +320,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      _heroBannerImage,
+                    child: CachedNetworkImage(
+                      imageUrl: _heroBannerImage,
                       width: 110,
                       height: 150,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      placeholder: (context, url) => Container(
+                        width: 110,
+                        height: 150,
+                        color: AppColors.navy700,
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         width: 110,
                         height: 150,
                         color: AppColors.navy700,
@@ -558,11 +589,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Dynamic Building photo banner
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: Image.network(
-                      _buildingImage,
+                    child: CachedNetworkImage(
+                      imageUrl: _buildingImage,
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        height: 120,
+                        width: double.infinity,
+                        color: AppColors.navy700,
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        height: 120,
+                        width: double.infinity,
+                        color: AppColors.navy700,
+                        child: const Icon(Icons.location_city, color: AppColors.primaryLime, size: 32),
+                      ),
                     ),
                   ),
 
@@ -597,7 +639,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
                         image: DecorationImage(
-                          image: NetworkImage(_mapImage),
+                          image: CachedNetworkImageProvider(_mapImage),
                           fit: BoxFit.cover,
                         ),
                       ),

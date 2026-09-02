@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/providers/auth_provider.dart';
+import '../../../core/storage/storage_service.dart';
 
 class CoursesScreen extends ConsumerStatefulWidget {
   const CoursesScreen({super.key});
@@ -19,10 +21,35 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
   List<Map<String, dynamic>> _courses = [];
   List<String> _categories = ['Barchasi'];
 
+  final _storage = StorageService();
+
   @override
   void initState() {
     super.initState();
+    _loadCachedCourses();
     _fetchCourses();
+  }
+
+  void _applyCourses(List<Map<String, dynamic>> data) {
+    final cats = <String>{'Barchasi'};
+    for (final c in data) {
+      final catName = (c['category'] as Map<String, dynamic>?)?['nameUz'] as String?;
+      if (catName != null) cats.add(catName);
+    }
+    _courses = data;
+    _categories = cats.toList();
+  }
+
+  // Shows the last-fetched course list immediately (works offline) while
+  // the live fetch below refreshes it in the background.
+  Future<void> _loadCachedCourses() async {
+    final cached = await _storage.getCache('courses_list');
+    if (cached != null && mounted) {
+      setState(() {
+        _applyCourses((cached as List<dynamic>).cast<Map<String, dynamic>>());
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchCourses() async {
@@ -30,19 +57,16 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get('/courses');
       final data = (response.data['data'] as List<dynamic>).cast<Map<String, dynamic>>();
-      final cats = <String>{'Barchasi'};
-      for (final c in data) {
-        final catName = (c['category'] as Map<String, dynamic>?)?['nameUz'] as String?;
-        if (catName != null) cats.add(catName);
-      }
       if (mounted) {
         setState(() {
-          _courses = data;
-          _categories = cats.toList();
+          _applyCourses(data);
           _isLoading = false;
         });
       }
+      _storage.saveCache('courses_list', data);
     } catch (_) {
+      // Offline or request failed — the cached list loaded above (if any)
+      // keeps showing instead of an empty "not found" state.
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -208,12 +232,17 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                                 children: [
                                   ClipRRect(
                                     borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
-                                    child: Image.network(
-                                      course['coverImage'] as String? ?? '',
+                                    child: CachedNetworkImage(
+                                      imageUrl: course['coverImage'] as String? ?? '',
                                       width: 120,
                                       height: 120,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => Container(
+                                      placeholder: (context, url) => Container(
+                                        width: 120,
+                                        height: 120,
+                                        color: AppColors.navy700,
+                                      ),
+                                      errorWidget: (context, url, error) => Container(
                                         width: 120,
                                         height: 120,
                                         color: AppColors.navy700,

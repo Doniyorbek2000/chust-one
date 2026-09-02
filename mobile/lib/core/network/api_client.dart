@@ -46,4 +46,8 @@ class ApiClient {
   Future<Response> patch(String path, {dynamic data}) async {
     return await dio.patch(path, data: data);
   }
+
+  Future<Response> delete(String path, {dynamic data}) async {
+    return await dio.delete(path, data: data);
+  }
 }
