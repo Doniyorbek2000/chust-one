@@ -5,6 +5,7 @@
 // PNGs with a black fill, so every icon-shaped asset must be fully opaque.
 const fs = require('fs');
 const { Jimp } = require('jimp');
+const { PNG } = require('pngjs');
 
 const srcLogo = 'logo.png';
 const NAVY = 0x041426ff; // Jimp RGBA hex (0xRRGGBBAA)
@@ -16,6 +17,26 @@ async function composite(mark, canvasSize, markScale) {
   const offset = Math.round((canvasSize - markSize) / 2);
   bg.composite(resizedMark, offset, offset);
   return bg;
+}
+
+// Writes a Jimp image as a true opaque RGB PNG (no alpha channel at all),
+// which App Store validation requires for app icons. Jimp's own
+// `.write(path, { inputHasAlpha: false })` only flips the PNG color-type
+// flag without actually removing the alpha byte from the pixel buffer,
+// which desyncs every pixel's RGB triplet and renders as scrambled static
+// once installed — this manually strips the 4th (alpha) byte per pixel
+// before handing pngjs a correctly-sized RGB buffer.
+function writeOpaquePng(image, path) {
+  const { width, height, data } = image.bitmap; // RGBA, 4 bytes/pixel
+  const rgb = Buffer.alloc(width * height * 3);
+  for (let i = 0, j = 0; i < data.length; i += 4, j += 3) {
+    rgb[j] = data[i];
+    rgb[j + 1] = data[i + 1];
+    rgb[j + 2] = data[i + 2];
+  }
+  const png = new PNG({ width, height, colorType: 2 });
+  png.data = rgb;
+  fs.writeFileSync(path, PNG.sync.write(png, { colorType: 2, inputHasAlpha: false }));
 }
 
 async function main() {
@@ -93,7 +114,7 @@ async function main() {
       const icon = await composite(mark, size, 0.72);
       // App Store validation rejects any app icon (especially the 1024
       // marketing icon) that carries an alpha channel, even if fully opaque.
-      await icon.write(`${iosDir}/${file}`, { inputHasAlpha: false });
+      writeOpaquePng(icon, `${iosDir}/${file}`);
     }
     console.log('iOS AppIcon.appiconset done');
   }
