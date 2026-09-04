@@ -93,6 +93,7 @@ interface CourseItem {
   price: number;
   discountPrice?: number | null;
   studentCount: number;
+  isPopular?: boolean;
 }
 
 interface NewsItem {
@@ -1676,6 +1677,11 @@ export default function AdminDashboard() {
                   <img src={courseForm.coverImage} alt="preview" className="w-16 h-16 object-cover rounded-xl border border-[#1E3A5F]" />
                   <FileUploadButton id="upload-course-image" onChange={handleCourseImageUpload} hint="Tavsiya: 1200×800 px (gorizontal, 3:2), JPG yoki PNG format, hajmi 2 MB dan oshmasin — kurs kartochkasida shu nisbatda ko'rinadi." />
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <input type="checkbox" checked={!!courseForm.isPopular} onChange={e => setCourseForm({ ...courseForm, isPopular: e.target.checked })} className="w-4 h-4" />
+                <label className="font-semibold text-slate-300">Mashhur kurs sifatida belgilash (mobil ilova bosh sahifasida alohida banner bilan chiqadi)</label>
               </div>
             </div>
 

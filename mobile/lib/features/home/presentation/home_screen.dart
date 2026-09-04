@@ -39,72 +39,82 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isMaintenance = false;
 
   List<Map<String, dynamic>> _apiCourses = [];
+  List<Map<String, dynamic>> _testimonials = [];
 
   final _storage = StorageService();
 
-  // Display metadata (icon/color) for the home-screen grid, keyed by the
-  // course's real titleUz so tiles always navigate using a real course id.
-  static const Map<String, Map<String, dynamic>> _gridDisplayByTitle = {
-    'Kompyuter savodxonligi': {'label': 'Kompyuter\nsavodxonligi', 'icon': Icons.laptop_chromebook, 'color': Color(0xFF3E8BFF)},
-    'Mobilografiya': {'label': 'Mobilografiya', 'icon': Icons.smartphone, 'color': Color(0xFFFF9F43)},
-    'Videomontaj': {'label': 'Videomontaj', 'icon': Icons.movie_creation_outlined, 'color': Color(0xFFFF5252)},
-    'Blogerlik': {'label': 'Blogerlik', 'icon': Icons.mic_none, 'color': Color(0xFF00BEC4)},
-    'Instagramni to\'g\'ri yuritish': {'label': 'Instagramni\nto\'g\'ri yuritish', 'icon': Icons.camera_alt_outlined, 'color': Color(0xFFE1306C)},
-    'SMM xizmatlari': {'label': 'SMM\nxizmatlari', 'icon': Icons.people_outline, 'color': Color(0xFF10AC84)},
-  };
+  // Curated accent palette the course grid cycles through so every course —
+  // including ones an admin adds later, like "Sun'iy intellekt" — gets a
+  // distinct color without needing a hardcoded per-title entry.
+  static const List<Color> _paletteColors = [
+    Color(0xFF3E8BFF),
+    Color(0xFFFF9F43),
+    Color(0xFFFF5252),
+    Color(0xFF00BEC4),
+    Color(0xFFE1306C),
+    Color(0xFF10AC84),
+    Color(0xFF9B59B6),
+    Color(0xFFF39C12),
+  ];
 
-  static const Map<String, IconData> _additionalIconByTitle = {
-    'Mobilografiya': Icons.camera_enhance_outlined,
-    'Videomontaj': Icons.video_library_outlined,
-    'Blogerlik': Icons.mic_external_on_outlined,
-    'Instagramni to\'g\'ri yuritish': Icons.camera_alt_outlined,
-    'SMM xizmatlari': Icons.groups_outlined,
-    'Professional target yoqish': Icons.ads_click,
-  };
+  Color _colorForIndex(int index) => _paletteColors[index % _paletteColors.length];
 
-  Map<String, dynamic>? _courseByTitle(String title) {
-    for (final c in _apiCourses) {
-      if (c['titleUz'] == title) return c;
+  // Best-effort mapping from the course/category's FontAwesome-style
+  // iconName (set in the admin panel) or its title to a Material icon, with
+  // a sensible fallback so brand-new course topics still look intentional.
+  IconData _iconForCourse(Map<String, dynamic> course) {
+    final iconName = (course['category']?['iconName'] as String?) ?? '';
+    final title = (course['titleUz'] as String?) ?? '';
+    final key = '$iconName $title'.toLowerCase();
+
+    if (key.contains('robot') || key.contains('sun\'iy') || key.contains('intellekt') || key.contains('artificial') || key.contains(' ai')) {
+      return Icons.smart_toy_outlined;
+    }
+    if (key.contains('laptop') || key.contains('computer') || key.contains('kompyuter')) return Icons.laptop_chromebook;
+    if (key.contains('mobile') || key.contains('phone') || key.contains('mobilografiya')) return Icons.smartphone;
+    if (key.contains('video') || key.contains('movie') || key.contains('film')) return Icons.movie_creation_outlined;
+    if (key.contains('mic') || key.contains('blog')) return Icons.mic_none;
+    if (key.contains('camera') || key.contains('instagram') || key.contains('photo')) return Icons.camera_alt_outlined;
+    if (key.contains('user') || key.contains('people') || key.contains('smm') || key.contains('group')) return Icons.people_outline;
+    if (key.contains('ad') || key.contains('target') || key.contains('bullhorn') || key.contains('click')) return Icons.ads_click;
+    if (key.contains('code') || key.contains('dastur') || key.contains('program')) return Icons.code;
+    if (key.contains('design') || key.contains('paint') || key.contains('dizayn')) return Icons.palette_outlined;
+    if (key.contains('music') || key.contains('musiqa')) return Icons.music_note_outlined;
+    if (key.contains('language') || key.contains('til')) return Icons.language;
+    if (key.contains('game') || key.contains('geym')) return Icons.sports_esports_outlined;
+    return Icons.menu_book_outlined;
+  }
+
+  List<Map<String, dynamic>> get _popularCourses =>
+      _apiCourses.where((c) => c['isPopular'] == true).toList();
+
+  // Accepts any YouTube link format (watch?v=, youtu.be/, shorts/, embed/)
+  // and extracts the 11-char video id, so thumbnails/links work regardless
+  // of which format the admin pasted when adding the testimonial.
+  String? _youtubeId(String? url) {
+    if (url == null || url.isEmpty) return null;
+    final patterns = [
+      RegExp(r'[?&]v=([a-zA-Z0-9_-]{11})'),
+      RegExp(r'youtu\.be/([a-zA-Z0-9_-]{11})'),
+      RegExp(r'youtube\.com/shorts/([a-zA-Z0-9_-]{11})'),
+      RegExp(r'youtube\.com/embed/([a-zA-Z0-9_-]{11})'),
+    ];
+    for (final p in patterns) {
+      final m = p.firstMatch(url);
+      if (m != null) return m.group(1);
     }
     return null;
   }
-
-  List<Map<String, dynamic>> get _courseCategories {
-    final items = <Map<String, dynamic>>[];
-    _gridDisplayByTitle.forEach((title, display) {
-      final course = _courseByTitle(title);
-      if (course != null) {
-        items.add({
-          'id': course['id'],
-          'title': display['label'],
-          'icon': display['icon'],
-          'color': display['color'],
-        });
-      }
-    });
-    return items;
-  }
-
-  List<Map<String, dynamic>> get _additionalCourses {
-    final items = <Map<String, dynamic>>[];
-    _additionalIconByTitle.forEach((title, icon) {
-      final course = _courseByTitle(title);
-      if (course != null) {
-        items.add({'title': title, 'icon': icon, 'id': course['id']});
-      }
-    });
-    return items;
-  }
-
-  Map<String, dynamic>? get _targetCourse => _courseByTitle('Professional target yoqish');
 
   @override
   void initState() {
     super.initState();
     _loadCachedCmsData();
     _loadCachedCourses();
+    _loadCachedTestimonials();
     _fetchDynamicCmsData();
     _fetchCourses();
+    _fetchTestimonials();
   }
 
   void _applySettingsData(Map<String, dynamic> data) {
@@ -144,6 +154,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadCachedTestimonials() async {
+    final cached = await _storage.getCache('testimonials_list');
+    if (cached != null && mounted) {
+      setState(() => _testimonials = (cached as List<dynamic>).cast<Map<String, dynamic>>());
+    }
+  }
+
   Future<void> _fetchCourses() async {
     try {
       final dio = Dio();
@@ -156,6 +173,20 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // Offline or request failed — the cached data loaded above (if any)
       // keeps showing; hero and location sections still work independently.
+    }
+  }
+
+  Future<void> _fetchTestimonials() async {
+    try {
+      final dio = Dio();
+      final response = await dio.get('${AppConstants.apiBaseUrl}/content-blocks', queryParameters: {'section': 'TESTIMONIAL'});
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = (response.data['data'] as List<dynamic>).cast<Map<String, dynamic>>();
+        if (mounted) setState(() => _testimonials = data);
+        _storage.saveCache('testimonials_list', data);
+      }
+    } catch (_) {
+      // Offline or request failed — keep showing cached/empty state.
     }
   }
 
@@ -342,9 +373,95 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+            // 2. VIDEO TESTIMONIALS — admin-managed via the CMS "TESTIMONIAL"
+            // content blocks (up to 20+ videos supported, same source that
+            // powers the website's "Mijozlar fikri" section).
+            if (_testimonials.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                'O\'quvchilar fikri',
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 210,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _testimonials.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final item = _testimonials[index];
+                    final videoId = _youtubeId(item['mediaUrl'] as String?);
+                    final thumbUrl = videoId != null ? 'https://img.youtube.com/vi/$videoId/hqdefault.jpg' : null;
+                    return InkWell(
+                      onTap: videoId == null ? null : () => _openUrl('https://www.youtube.com/watch?v=$videoId'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: 118,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: AppColors.navy800,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (thumbUrl != null)
+                              CachedNetworkImage(
+                                imageUrl: thumbUrl,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(color: AppColors.navy700),
+                                errorWidget: (context, url, error) => Container(color: AppColors.navy700),
+                              ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.black.withValues(alpha: 0.05), Colors.black.withValues(alpha: 0.65)],
+                                ),
+                              ),
+                            ),
+                            const Center(
+                              child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40),
+                            ),
+                            if ((item['titleUz'] as String?)?.isNotEmpty == true)
+                              Positioned(
+                                left: 8,
+                                right: 8,
+                                bottom: 8,
+                                child: Text(
+                                  item['titleUz'] as String,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
 
-            // 2. COURSE CATEGORIES GRID
+            // 3. COURSE CATEGORIES GRID — driven directly by the courses the
+            // admin manages in the backend, so a newly added course (e.g.
+            // "Sun'iy intellekt") appears here automatically with no app
+            // update needed.
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -379,11 +496,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSpacing: 12,
                 childAspectRatio: 0.85,
               ),
-              itemCount: _courseCategories.length,
+              itemCount: _apiCourses.length,
               itemBuilder: (context, index) {
-                final cat = _courseCategories[index];
+                final course = _apiCourses[index];
+                final color = _colorForIndex(index);
                 return InkWell(
-                  onTap: () => context.push('/course-detail/${cat['id']}'),
+                  onTap: () => context.push('/course-detail/${course['id']}'),
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     decoration: BoxDecoration(
@@ -408,18 +526,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: (cat['color'] as Color).withValues(alpha: 0.12),
+                            color: color.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            cat['icon'] as IconData,
-                            color: cat['color'] as Color,
+                            _iconForCourse(course),
+                            color: color,
                             size: 24,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          cat['title'],
+                          course['titleUz'] as String? ?? '',
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -437,80 +555,17 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-            const SizedBox(height: 14),
-
-            // Target banner card
-            if (_targetCourse != null)
-            InkWell(
-              onTap: () => context.push('/course-detail/${_targetCourse!['id']}'),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF5252).withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.ads_click, color: Color(0xFFFF5252), size: 24),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        'Professional target yoqish',
-                        style: TextStyle(
-                          color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.primaryLime, size: 18),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // 3. "BUNDAN TASHQARI SIZ" LIST SECTION matching Screen 4 reference
-            RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                ),
-                children: const [
-                  TextSpan(text: 'BUNDAN TASHQARI '),
-                  TextSpan(text: 'SIZ', style: TextStyle(color: AppColors.primaryLime)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'zamonaviy kasblarni o\'rganishingiz mumkin!',
-              style: TextStyle(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Column(
-              children: _additionalCourses.map((item) {
-                return InkWell(
-                  onTap: () => context.push('/course-detail/${item['id']}'),
+            // Featured banners for any course the admin flags as popular —
+            // generalized from the old hardcoded "Professional target
+            // yoqish" banner so it now works for any course.
+            ..._popularCourses.map((course) {
+              final color = _colorForIndex(_apiCourses.indexOf(course));
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: InkWell(
+                  onTap: () => context.push('/course-detail/${course['id']}'),
                   child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
+                    width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
@@ -519,25 +574,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(item['icon'] as IconData, color: AppColors.primaryLime, size: 22),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(_iconForCourse(course), color: color, size: 24),
+                        ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Text(
-                            item['title'] as String,
+                            course['titleUz'] as String? ?? '',
                             style: TextStyle(
                               color: isDark ? Colors.white : AppColors.textPrimaryLight,
                               fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondaryDark, size: 16),
+                        const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.primaryLime, size: 18),
                       ],
                     ),
                   ),
-                );
-              }).toList(),
-            ),
+                ),
+              );
+            }),
 
             const SizedBox(height: 28),
 
