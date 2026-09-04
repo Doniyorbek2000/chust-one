@@ -8,12 +8,19 @@ on:
 
 jobs:
   build-and-upload:
-    runs-on: macos-14
+    runs-on: macos-15
     defaults:
       run:
         working-directory: mobile
     steps:
       - uses: actions/checkout@v4
+
+      # App Store Connect requires apps built with a current iOS SDK; pin to
+      # whatever the runner's newest stable Xcode is rather than a version
+      # number that will go stale as Apple raises the minimum over time.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
       - uses: subosito/flutter-action@v2
         with:

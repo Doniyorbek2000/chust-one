@@ -78,7 +78,7 @@ async function main() {
       'Icon-App-60x60@3x.png': 180,
       'Icon-App-76x76@1x.png': 76,
       'Icon-App-76x76@2x.png': 152,
-      'Icon-App-83.5x83.5@2x.png': 83,
+      'Icon-App-83.5x83.5@2x.png': 167,
       'Icon-App-40x40@1x.png': 40,
       'Icon-App-40x40@2x.png': 80,
       'Icon-App-40x40@3x.png': 120,
@@ -91,7 +91,9 @@ async function main() {
     };
     for (const [file, size] of Object.entries(iosSizes)) {
       const icon = await composite(mark, size, 0.72);
-      await icon.write(`${iosDir}/${file}`);
+      // App Store validation rejects any app icon (especially the 1024
+      // marketing icon) that carries an alpha channel, even if fully opaque.
+      await icon.write(`${iosDir}/${file}`, { inputHasAlpha: false });
     }
     console.log('iOS AppIcon.appiconset done');
   }
