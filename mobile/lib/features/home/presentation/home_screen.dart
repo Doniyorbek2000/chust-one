@@ -232,7 +232,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = YoutubePlayerController.fromVideoId(
       videoId: videoId,
       autoPlay: true,
-      params: const YoutubePlayerParams(showFullscreenButton: true),
+      params: const YoutubePlayerParams(
+        showFullscreenButton: true,
+        showVideoAnnotations: false,
+        // Keeps YouTube's end-of-video suggestions limited to this same
+        // channel instead of random unrelated videos — YouTube requires
+        // its own branding/logo stay visible on embeds, so that much can't
+        // be removed, but this keeps what does show on-brand.
+        strictRelatedVideos: true,
+        privacyEnhancedMode: true,
+      ),
     );
     showModalBottomSheet(
       context: context,
@@ -263,8 +272,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
+                // These testimonial clips are recorded/uploaded in vertical
+                // (Shorts-style) format, so a portrait frame is used instead
+                // of the usual 16:9 — matching the container to the video's
+                // real shape avoids YouTube pillarboxing it with big black
+                // bars on the sides.
                 AspectRatio(
-                  aspectRatio: 16 / 9,
+                  aspectRatio: 9 / 16,
                   child: YoutubePlayer(controller: controller),
                 ),
                 const SizedBox(height: 8),
@@ -552,7 +566,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisCount: 3,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 0.85,
+                childAspectRatio: 0.72,
               ),
               itemCount: _apiCourses.length,
               itemBuilder: (context, index) {
@@ -560,74 +574,78 @@ class _HomeScreenState extends State<HomeScreen> {
                 final color = _colorForIndex(index);
                 return InkWell(
                   onTap: () => context.push('/course-detail/${course['id']}'),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   child: Container(
+                    clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: color.withValues(alpha: 0.35)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(10),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            ClipOval(
-                              child: CachedNetworkImage(
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CachedNetworkImage(
                                 imageUrl: course['coverImage'] as String? ?? '',
-                                width: 44,
-                                height: 44,
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  width: 44,
-                                  height: 44,
-                                  color: color.withValues(alpha: 0.12),
-                                ),
+                                placeholder: (context, url) => Container(color: color.withValues(alpha: 0.12)),
                                 errorWidget: (context, url, error) => Container(
-                                  width: 44,
-                                  height: 44,
                                   color: color.withValues(alpha: 0.12),
-                                  child: FaIcon(_iconForCourse(course), color: color, size: 20),
+                                  child: Center(child: FaIcon(_iconForCourse(course), color: color, size: 28)),
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              right: -2,
-                              bottom: -2,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
+                              // Subtle gradient so the icon badge stays legible
+                              // over busy course-cover photos.
+                              Container(
                                 decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: isDark ? AppColors.navy800 : AppColors.surfaceLight, width: 2),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.35)],
+                                  ),
                                 ),
-                                child: FaIcon(_iconForCourse(course), color: Colors.white, size: 10),
                               ),
-                            ),
-                          ],
+                              Positioned(
+                                left: 6,
+                                bottom: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6),
+                                    ],
+                                  ),
+                                  child: FaIcon(_iconForCourse(course), color: Colors.white, size: 12),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          course['titleUz'] as String? ?? '',
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            height: 1.2,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                          child: Text(
+                            course['titleUz'] as String? ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                            ),
                           ),
                         ),
                       ],
