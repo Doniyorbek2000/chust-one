@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/academy_logo.dart';
@@ -60,33 +62,37 @@ class _HomeScreenState extends State<HomeScreen> {
   Color _colorForIndex(int index) => _paletteColors[index % _paletteColors.length];
 
   // Best-effort mapping from the course/category's FontAwesome-style
-  // iconName (set in the admin panel) or its title to a Material icon, with
+  // iconName (set in the admin panel) or its title to a polished icon —
+  // real brand glyphs (Instagram, Telegram, TikTok, YouTube) where the
+  // topic is a specific platform, FontAwesome solid icons elsewhere, with
   // a sensible fallback so brand-new course topics still look intentional.
-  IconData _iconForCourse(Map<String, dynamic> course) {
+  FaIconData _iconForCourse(Map<String, dynamic> course) {
     final iconName = (course['category']?['iconName'] as String?) ?? '';
     final title = (course['titleUz'] as String?) ?? '';
     final key = '$iconName $title'.toLowerCase();
 
+    if (key.contains('instagram')) return FontAwesomeIcons.instagram;
+    if (key.contains('telegram')) return FontAwesomeIcons.telegram;
+    if (key.contains('tiktok')) return FontAwesomeIcons.tiktok;
+    if (key.contains('youtube')) return FontAwesomeIcons.youtube;
+    if (key.contains('facebook')) return FontAwesomeIcons.facebook;
     if (key.contains('robot') || key.contains('sun\'iy') || key.contains('intellekt') || key.contains('artificial') || key.contains(' ai')) {
-      return Icons.smart_toy_outlined;
+      return FontAwesomeIcons.robot;
     }
-    if (key.contains('laptop') || key.contains('computer') || key.contains('kompyuter')) return Icons.laptop_chromebook;
-    if (key.contains('mobile') || key.contains('phone') || key.contains('mobilografiya')) return Icons.smartphone;
-    if (key.contains('video') || key.contains('movie') || key.contains('film')) return Icons.movie_creation_outlined;
-    if (key.contains('mic') || key.contains('blog')) return Icons.mic_none;
-    if (key.contains('camera') || key.contains('instagram') || key.contains('photo')) return Icons.camera_alt_outlined;
-    if (key.contains('user') || key.contains('people') || key.contains('smm') || key.contains('group')) return Icons.people_outline;
-    if (key.contains('ad') || key.contains('target') || key.contains('bullhorn') || key.contains('click')) return Icons.ads_click;
-    if (key.contains('code') || key.contains('dastur') || key.contains('program')) return Icons.code;
-    if (key.contains('design') || key.contains('paint') || key.contains('dizayn')) return Icons.palette_outlined;
-    if (key.contains('music') || key.contains('musiqa')) return Icons.music_note_outlined;
-    if (key.contains('language') || key.contains('til')) return Icons.language;
-    if (key.contains('game') || key.contains('geym')) return Icons.sports_esports_outlined;
-    return Icons.menu_book_outlined;
+    if (key.contains('laptop') || key.contains('computer') || key.contains('kompyuter')) return FontAwesomeIcons.laptopCode;
+    if (key.contains('mobile') || key.contains('phone') || key.contains('mobilografiya')) return FontAwesomeIcons.mobileScreenButton;
+    if (key.contains('video') || key.contains('movie') || key.contains('film')) return FontAwesomeIcons.clapperboard;
+    if (key.contains('mic') || key.contains('blog')) return FontAwesomeIcons.microphone;
+    if (key.contains('camera') || key.contains('photo')) return FontAwesomeIcons.camera;
+    if (key.contains('user') || key.contains('people') || key.contains('smm') || key.contains('group')) return FontAwesomeIcons.users;
+    if (key.contains('ad') || key.contains('target') || key.contains('bullhorn') || key.contains('click')) return FontAwesomeIcons.bullseye;
+    if (key.contains('code') || key.contains('dastur') || key.contains('program')) return FontAwesomeIcons.code;
+    if (key.contains('design') || key.contains('paint') || key.contains('dizayn')) return FontAwesomeIcons.palette;
+    if (key.contains('music') || key.contains('musiqa')) return FontAwesomeIcons.music;
+    if (key.contains('language') || key.contains('til')) return FontAwesomeIcons.language;
+    if (key.contains('game') || key.contains('geym')) return FontAwesomeIcons.gamepad;
+    return FontAwesomeIcons.bookOpen;
   }
-
-  List<Map<String, dynamic>> get _popularCourses =>
-      _apiCourses.where((c) => c['isPopular'] == true).toList();
 
   // Accepts any YouTube link format (watch?v=, youtu.be/, shorts/, embed/)
   // and extracts the 11-char video id, so thumbnails/links work regardless
@@ -218,6 +224,56 @@ class _HomeScreenState extends State<HomeScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  // Plays a testimonial video inline (YouTube's iframe player embedded in a
+  // WebView) instead of handing the user off to the YouTube app/browser.
+  void _showVideoPlayer(String videoId, String title) {
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: videoId,
+      autoPlay: true,
+      params: const YoutubePlayerParams(showFullscreenButton: true),
+    );
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.navy900,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: YoutubePlayer(controller: controller),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    ).whenComplete(() => controller.close());
   }
 
   @override
@@ -387,72 +443,74 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              SizedBox(
-                height: 210,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _testimonials.length,
-                  separatorBuilder: (context, index) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    final item = _testimonials[index];
-                    final videoId = _youtubeId(item['mediaUrl'] as String?);
-                    final thumbUrl = videoId != null ? 'https://img.youtube.com/vi/$videoId/hqdefault.jpg' : null;
-                    return InkWell(
-                      onTap: videoId == null ? null : () => _openUrl('https://www.youtube.com/watch?v=$videoId'),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        width: 118,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: AppColors.navy800,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
-                        ),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            if (thumbUrl != null)
-                              CachedNetworkImage(
-                                imageUrl: thumbUrl,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(color: AppColors.navy700),
-                                errorWidget: (context, url, error) => Container(color: AppColors.navy700),
-                              ),
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [Colors.black.withValues(alpha: 0.05), Colors.black.withValues(alpha: 0.65)],
-                                ),
-                              ),
-                            ),
-                            const Center(
-                              child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40),
-                            ),
-                            if ((item['titleUz'] as String?)?.isNotEmpty == true)
-                              Positioned(
-                                left: 8,
-                                right: 8,
-                                bottom: 8,
-                                child: Text(
-                                  item['titleUz'] as String,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.78,
                 ),
+                itemCount: _testimonials.length,
+                itemBuilder: (context, index) {
+                  final item = _testimonials[index];
+                  final videoId = _youtubeId(item['mediaUrl'] as String?);
+                  final thumbUrl = videoId != null ? 'https://img.youtube.com/vi/$videoId/hqdefault.jpg' : null;
+                  final title = (item['titleUz'] as String?) ?? '';
+                  return InkWell(
+                    onTap: videoId == null ? null : () => _showVideoPlayer(videoId, title),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: AppColors.navy800,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+                      ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (thumbUrl != null)
+                            CachedNetworkImage(
+                              imageUrl: thumbUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(color: AppColors.navy700),
+                              errorWidget: (context, url, error) => Container(color: AppColors.navy700),
+                            ),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Colors.black.withValues(alpha: 0.05), Colors.black.withValues(alpha: 0.65)],
+                              ),
+                            ),
+                          ),
+                          const Center(
+                            child: Icon(Icons.play_circle_fill, color: Colors.white, size: 44),
+                          ),
+                          if (title.isNotEmpty)
+                            Positioned(
+                              left: 10,
+                              right: 10,
+                              bottom: 10,
+                              child: Text(
+                                title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
 
@@ -522,18 +580,42 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            _iconForCourse(course),
-                            color: color,
-                            size: 24,
-                          ),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: course['coverImage'] as String? ?? '',
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  width: 44,
+                                  height: 44,
+                                  color: color.withValues(alpha: 0.12),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  width: 44,
+                                  height: 44,
+                                  color: color.withValues(alpha: 0.12),
+                                  child: FaIcon(_iconForCourse(course), color: color, size: 20),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: isDark ? AppColors.navy800 : AppColors.surfaceLight, width: 2),
+                                ),
+                                child: FaIcon(_iconForCourse(course), color: Colors.white, size: 10),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -554,53 +636,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-
-            // Featured banners for any course the admin flags as popular —
-            // generalized from the old hardcoded "Professional target
-            // yoqish" banner so it now works for any course.
-            ..._popularCourses.map((course) {
-              final color = _colorForIndex(_apiCourses.indexOf(course));
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: InkWell(
-                  onTap: () => context.push('/course-detail/${course['id']}'),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(_iconForCourse(course), color: color, size: 24),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            course['titleUz'] as String? ?? '',
-                            style: TextStyle(
-                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.primaryLime, size: 18),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
 
             const SizedBox(height: 28),
 
