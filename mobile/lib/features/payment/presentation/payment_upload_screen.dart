@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,16 +20,19 @@ class PaymentUploadScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
-  String _selectedMethod = 'Click';
+  String _selectedMethod = 'Paynet';
   File? _receiptFile;
   bool _isSubmitting = false;
 
   final List<Map<String, String>> _methods = [
+    {'name': 'Paynet', 'icon': '⚡'},
     {'name': 'Click', 'icon': '💳'},
     {'name': 'Payme', 'icon': '📲'},
     {'name': 'Uzum Bank', 'icon': '💎'},
     {'name': 'Naqd / Administrator', 'icon': '💵'},
   ];
+
+  bool get _isPaynet => _selectedMethod == 'Paynet';
 
   Future<void> _pickReceipt() async {
     final picker = ImagePicker();
@@ -88,6 +92,72 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
     }
   }
 
+  Widget _buildPaynetInstructions(bool isDark) {
+    final code = widget.enrollmentId ?? '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'To\'lov kodi',
+          style: TextStyle(
+            color: isDark ? Colors.white : AppColors.textPrimaryLight,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  code,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.copy_rounded, color: AppColors.primaryLime),
+                onPressed: code.isEmpty
+                    ? null
+                    : () {
+                        Clipboard.setData(ClipboardData(text: code));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Nusxalandi')),
+                        );
+                      },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Paynet ilovasida "Chust One Academy" xizmatini toping, yuqoridagi to\'lov kodini kiriting va to\'lovni amalga oshiring. To\'lov qabul qilingach, kursga avtomatik biriktirilasiz — qayta hech narsa yuklash shart emas.',
+          style: TextStyle(
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 32),
+        CustomButton(
+          label: 'Tushundim',
+          onPressed: () => context.go('/home'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -122,8 +192,8 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
                   Expanded(
                     child: Text(
                       widget.amount != null
-                          ? 'Arizangiz qabul qilindi. To\'lov summasi: ${widget.amount!.toStringAsFixed(0)} so\'m. Kursga biriktirilishingiz uchun to\'lov chekini yuklang.'
-                          : 'Arizangiz qabul qilindi. Kursga biriktirilishingiz uchun to\'lov chekini yuklang.',
+                          ? 'Arizangiz qabul qilindi. To\'lov summasi: ${widget.amount!.toStringAsFixed(0)} so\'m. To\'lov turini tanlang.'
+                          : 'Arizangiz qabul qilindi. To\'lov turini tanlang.',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -187,60 +257,62 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
 
             const SizedBox(height: 24),
 
-            Text(
-              'To\'lov chekini yuklash (Screenshot)',
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            InkWell(
-              onTap: _pickReceipt,
-              child: Container(
-                height: 160,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: _receiptFile != null ? AppColors.success : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                    width: _receiptFile != null ? 2 : 1,
-                  ),
+            if (_isPaynet) _buildPaynetInstructions(isDark) else ...[
+              Text(
+                'To\'lov chekini yuklash (Screenshot)',
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: _receiptFile != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.file(_receiptFile!, fit: BoxFit.cover, width: double.infinity, height: 160),
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.cloud_upload_outlined, color: AppColors.primaryLime, size: 40),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Rasm yuklash uchun bosing',
-                              style: TextStyle(
-                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
               ),
-            ),
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 32),
+              InkWell(
+                onTap: _pickReceipt,
+                child: Container(
+                  height: 160,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: _receiptFile != null ? AppColors.success : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                      width: _receiptFile != null ? 2 : 1,
+                    ),
+                  ),
+                  child: _receiptFile != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.file(_receiptFile!, fit: BoxFit.cover, width: double.infinity, height: 160),
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.cloud_upload_outlined, color: AppColors.primaryLime, size: 40),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Rasm yuklash uchun bosing',
+                                style: TextStyle(
+                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
 
-            CustomButton(
-              label: 'Tasdiqqa yuborish',
-              isLoading: _isSubmitting,
-              onPressed: _submit,
-            ),
+              const SizedBox(height: 32),
+
+              CustomButton(
+                label: 'Tasdiqqa yuborish',
+                isLoading: _isSubmitting,
+                onPressed: _submit,
+              ),
+            ],
           ],
         ),
       ),

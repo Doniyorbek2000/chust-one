@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { generateToken, requireAuth, requireAdmin, optionalAuth } from './middleware/auth';
 import { upload, UPLOAD_DIR } from './middleware/upload';
+import { paynetRouter } from './paynet';
 
 const prisma = new PrismaClient();
 const app = express();
@@ -640,6 +641,10 @@ app.patch('/api/v1/admin/enrollments/:id', requireAuth, requireAdmin, async (req
 // -------------------------------------------------------------
 // PAYMENTS ENDPOINTS
 // -------------------------------------------------------------
+
+// Paynet's own server calls this — JSON-RPC 2.0, Basic Auth, not our JWT.
+app.use('/api/v1/payments/paynet', paynetRouter);
+
 app.post('/api/v1/payments', requireAuth, async (req: Request, res: Response) => {
   try {
     const { enrollmentId, amount, method, receiptUrl, notes } = req.body;

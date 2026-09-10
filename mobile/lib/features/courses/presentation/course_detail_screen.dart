@@ -292,14 +292,10 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
 
       if (!sheetContext.mounted) return;
       Navigator.pop(sheetContext);
-      _showSuccessDialog();
 
       if (!mounted) return;
       final price = (_course?['discountPrice'] ?? _course?['price'] ?? 0) as num;
-      context.push('/payment-upload', extra: {
-        'enrollmentId': enrollment['id'],
-        'amount': price,
-      });
+      _showSuccessDialog(enrollmentId: enrollment['id'] as String, amount: price);
     } on DioException catch (e) {
       if (!sheetContext.mounted) return;
       ScaffoldMessenger.of(sheetContext).showSnackBar(
@@ -313,7 +309,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     }
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialog({required String enrollmentId, required num amount}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
@@ -337,21 +333,34 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
           ],
         ),
         content: Text(
-          "Endi to'lov chekini yuklab, kursga biriktirilishingizni tasdiqlang.",
+          "Hozir to'lashni xohlaysizmi, yoki keyinroq to'lab, arizani hozircha shunday qoldirasizmi?",
           style: TextStyle(
             color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B),
             fontSize: 13,
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.go('/home');
+            },
+            child: Text('Keyinroq', style: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B))),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryLime,
               foregroundColor: AppColors.navy900,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Davom etish", style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push('/payment-upload', extra: {
+                'enrollmentId': enrollmentId,
+                'amount': amount,
+              });
+            },
+            child: const Text("Hozir to'lash", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

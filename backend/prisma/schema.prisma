@@ -134,6 +134,7 @@ model Enrollment {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   payments       Payment[]
+  paynetTransactions PaynetTransaction[]
 }
 
 model Payment {
@@ -149,6 +150,25 @@ model Payment {
   notes        String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+// One row per Paynet PerformTransaction call. Paynet's JSON-RPC merchant
+// protocol requires us to remember every transaction it hands us (keyed by
+// its own transactionId) so CheckTransaction/CancelTransaction/GetStatement
+// can be answered consistently, and duplicate PerformTransaction calls with
+// the same transactionId can be rejected instead of double-charging.
+model PaynetTransaction {
+  id            String     @id @default(uuid())
+  paynetTrnId   String     @unique
+  providerTrnId Int        @unique @default(autoincrement())
+  enrollmentId  String
+  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id])
+  paymentId     String?    @unique
+  amount        Float
+  state         Int        @default(1) // 1 = performed, 2 = cancelled
+  createdAt     DateTime   @default(now())
+  performedAt   DateTime?
+  cancelledAt   DateTime?
 }
 
 model News {
