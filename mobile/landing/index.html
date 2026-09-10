@@ -1898,6 +1898,41 @@
     </div>
   </div>
 
+  <!-- Modal shown right after a successful application: let the visitor
+       choose to pay now (Paynet) or leave it as an application for now. -->
+  <div class="modal-backdrop" id="successModal">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
+      <button class="modal-close" onclick="closeSuccessModal()" aria-label="Yopish">&times;</button>
+      <div style="font-size:44px; margin-bottom:16px; color: var(--lime-primary);"><i class="fa-solid fa-circle-check"></i></div>
+      <h3 id="successModalTitle" style="font-family:'Outfit',sans-serif; font-size:22px; font-weight:800; margin-bottom:12px;">Arizangiz qabul qilindi!</h3>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height:1.7;">
+        Hozir to'lashni xohlaysizmi, yoki keyinroq to'lab, arizani hozircha shunday qoldirasizmi?
+      </p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn-ios" style="flex:1; justify-content:center; padding:14px;" onclick="closeSuccessModal()">Keyinroq</button>
+        <button class="btn-lime" style="flex:1; justify-content:center; padding:14px;" onclick="showPaymentInfo()">Hozir to'lash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paynet payment-code modal — no receipt upload, payment is confirmed
+       automatically once Paynet notifies our backend. -->
+  <div class="modal-backdrop" id="paymentModal">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+      <button class="modal-close" onclick="closePaymentModal()" aria-label="Yopish">&times;</button>
+      <h3 id="paymentModalTitle" style="font-family:'Outfit',sans-serif; font-size:22px; font-weight:800; margin-bottom:4px;">To'lov kodi</h3>
+      <p id="paymentAmountText" style="color:var(--lime-primary); font-size:13px; font-weight:700; margin-bottom:18px;"></p>
+      <div style="background:var(--navy-900); border:1px solid var(--border-color); border-radius:14px; padding:14px 16px; display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+        <span id="paymentCode" style="flex:1; font-weight:800; font-size:13px; word-break:break-all;"></span>
+        <button onclick="copyPaymentCode()" aria-label="Nusxalash" style="background:none; border:none; color:var(--lime-primary); cursor:pointer; font-size:18px; padding:4px;"><i class="fa-solid fa-copy"></i></button>
+      </div>
+      <p style="color:var(--text-muted); font-size:13px; line-height:1.7; margin-bottom:20px;">
+        Paynet ilovasida "Chust One Academy" xizmatini toping, yuqoridagi to'lov kodini kiriting va to'lovni amalga oshiring. To'lov qabul qilingach, kursga avtomatik biriktirilasiz — qayta hech narsa yuklash shart emas.
+      </p>
+      <button class="btn-lime" style="width:100%; justify-content:center; padding:14px;" onclick="closePaymentModal()">Tushundim</button>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="site-footer">
     <div class="container">
@@ -2013,6 +2048,42 @@
       unlockScroll();
     }
 
+    // ---------------- Post-application payment (Paynet) ----------------
+    let coursesById = {};
+    let lastEnrollment = { id: '', amount: 0 };
+
+    function formatSom(n) {
+      return `${Math.round(n).toLocaleString('fr-FR').replace(/,/g, ' ')} so'm`;
+    }
+
+    function closeSuccessModal() {
+      const modal = document.getElementById('successModal');
+      if (!modal.classList.contains('active')) return;
+      modal.classList.remove('active');
+      unlockScroll();
+    }
+
+    function showPaymentInfo() {
+      closeSuccessModal();
+      document.getElementById('paymentCode').textContent = lastEnrollment.id;
+      document.getElementById('paymentAmountText').textContent =
+        lastEnrollment.amount ? `To'lov summasi: ${formatSom(lastEnrollment.amount)}` : '';
+      document.getElementById('paymentModal').classList.add('active');
+      lockScroll();
+    }
+
+    function closePaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      if (!modal.classList.contains('active')) return;
+      modal.classList.remove('active');
+      unlockScroll();
+    }
+
+    function copyPaymentCode() {
+      if (!lastEnrollment.id) return;
+      navigator.clipboard.writeText(lastEnrollment.id).then(() => alert('Nusxalandi'));
+    }
+
     // ---------------- Course apply modal ----------------
     function openApplyModal(courseId, courseName) {
       document.getElementById('modalCourseTitle').innerText = courseName;
@@ -2034,6 +2105,8 @@
       if (mobileMenu.classList.contains('active')) closeMobileMenu();
       if (document.getElementById('iosModal').classList.contains('active')) closeIosModal();
       if (document.getElementById('applyModal').classList.contains('active')) closeApplyModal();
+      if (document.getElementById('successModal').classList.contains('active')) closeSuccessModal();
+      if (document.getElementById('paymentModal').classList.contains('active')) closePaymentModal();
     });
 
     async function submitForm(e) {
@@ -2059,9 +2132,17 @@
           body: JSON.stringify({ studentName: name, phone: phone, preferredTime: schedule, courseId: courseId })
         });
         if (!res.ok) throw new Error('request failed');
-        alert('✅ Arizangiz muvaffaqiyatli qabul qilindi! Tez orada Chust One menejeri bog\'lanadi.');
+        const json = await res.json();
+        const enrollment = json && json.data;
+        const course = coursesById[courseId];
         e.target.reset();
         closeApplyModal();
+        lastEnrollment = {
+          id: enrollment && enrollment.id ? enrollment.id : '',
+          amount: course ? (course.discountPrice ?? course.price ?? 0) : 0,
+        };
+        document.getElementById('successModal').classList.add('active');
+        lockScroll();
       } catch (err) {
         alert('❌ Arizani yuborishda xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring yoki bizga qo\'ng\'iroq qiling.');
       } finally {
@@ -2289,6 +2370,8 @@
         const json = await res.json();
         const courses = json && json.data;
         if (!Array.isArray(courses) || courses.length === 0) return;
+
+        courses.forEach(course => { coursesById[course.id] = course; });
 
         const grid = document.getElementById('coursesGrid');
         grid.innerHTML = '';
