@@ -5,11 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../core/storage/storage_service.dart';
-import '../../../core/constants/app_constants.dart';
 
 class CourseDetailScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -121,14 +119,6 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
       return;
     }
 
-    // Apple rejects in-app course purchases that use anything other than
-    // In-App Purchase (Guideline 3.1.1). Until IAP is wired up, iOS users are
-    // routed to enroll outside the app instead of through the pay-by-receipt flow.
-    if (!kIsWeb && Platform.isIOS) {
-      _showContactToEnrollDialog();
-      return;
-    }
-
     final user = auth.user!;
     _nameController.text = user.fullName;
     _phoneController.text = user.phoneNumber;
@@ -136,60 +126,6 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     _addressController.text = user.address ?? '';
 
     _showApplyDialog();
-  }
-
-  Future<void> _makeCall(String phone) async {
-    final uri = Uri.parse('tel:${phone.replaceAll(RegExp(r'[^0-9+]'), '')}');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
-  }
-
-  Future<void> _openTelegram(String username) async {
-    final uri = Uri.parse('https://t.me/${username.replaceAll('@', '')}');
-    if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
-  void _showContactToEnrollDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.navy800 : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          'Kursga yozilish',
-          style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Kursga yozilish uchun administrator bilan bog\'laning:',
-          style: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B), fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Bekor qilish', style: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B))),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _openTelegram(AppConstants.telegramContact);
-            },
-            child: const Text('Telegram', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryLime,
-              foregroundColor: AppColors.navy900,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _makeCall(AppConstants.mainPhone);
-            },
-            child: Text(AppConstants.mainPhone, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showApplyDialog() {
@@ -609,8 +545,11 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
         ),
       ),
 
-      // Bottom Bar with "Kursga yozilish >" button
-      bottomNavigationBar: Container(
+      // Bottom Bar with "Kursga yozilish >" button.
+      // Apple Guideline 3.1.1: any enroll/contact call-to-action tied to a paid
+      // course counts as directing users to a non-IAP purchase mechanism, so
+      // iOS gets no enrollment CTA at all — courses are view-only there.
+      bottomNavigationBar: (!kIsWeb && Platform.isIOS) ? null : Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: isDark ? AppColors.navy900 : Colors.white,
