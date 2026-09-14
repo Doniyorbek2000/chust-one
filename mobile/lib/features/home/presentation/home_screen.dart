@@ -40,8 +40,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isMaintenance = false;
 
+  // Dynamic section headers (CMS "AppSetting") for the content-block grids below
+  String _audienceTag = 'KIMLAR UCHUN';
+  String _audienceTitle = 'Ushbu Kurslar Kimlar Uchun Mos?';
+  String _benefitsTag = 'AFZALLIKLARIMIZ';
+  String _benefitsTitle = 'Nima Uchun Bizning Kurslarni Tanlashadi?';
+  String _scheduleTag = 'DARS JADVALI';
+  String _scheduleTitle = 'Sizga Qulay Vaqtni Tanlang';
+
   List<Map<String, dynamic>> _apiCourses = [];
   List<Map<String, dynamic>> _testimonials = [];
+  List<Map<String, dynamic>> _stats = [];
+  List<Map<String, dynamic>> _audience = [];
+  List<Map<String, dynamic>> _benefits = [];
+  List<Map<String, dynamic>> _schedule = [];
 
   final _storage = StorageService();
 
@@ -94,6 +106,27 @@ class _HomeScreenState extends State<HomeScreen> {
     return FontAwesomeIcons.bookOpen;
   }
 
+  // Admin types a free-text FontAwesome class (e.g. "fa-solid fa-user-graduate")
+  // into the content-block's iconName field — best-effort keyword match to a
+  // real FontAwesomeIcons constant, since the free package has no lookup by
+  // CSS class name, with a sensible per-section fallback otherwise.
+  FaIconData _faIconFromName(String? iconName, FaIconData fallback) {
+    final key = (iconName ?? '').toLowerCase();
+    if (key.contains('graduate')) return FontAwesomeIcons.userGraduate;
+    if (key.contains('laptop')) return FontAwesomeIcons.laptopCode;
+    if (key.contains('briefcase')) return FontAwesomeIcons.briefcase;
+    if (key.contains('camera')) return FontAwesomeIcons.cameraRetro;
+    if (key.contains('clock')) return FontAwesomeIcons.clock;
+    if (key.contains('users') || key.contains('group')) return FontAwesomeIcons.users;
+    if (key.contains('check')) return FontAwesomeIcons.circleCheck;
+    if (key.contains('star')) return FontAwesomeIcons.star;
+    if (key.contains('bolt')) return FontAwesomeIcons.bolt;
+    if (key.contains('certificate')) return FontAwesomeIcons.certificate;
+    if (key.contains('mic') || key.contains('blog')) return FontAwesomeIcons.microphone;
+    if (key.contains('code') || key.contains('program')) return FontAwesomeIcons.code;
+    return fallback;
+  }
+
   // Accepts any YouTube link format (watch?v=, youtu.be/, shorts/, embed/)
   // and extracts the 11-char video id, so thumbnails/links work regardless
   // of which format the admin pasted when adding the testimonial.
@@ -118,9 +151,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadCachedCmsData();
     _loadCachedCourses();
     _loadCachedTestimonials();
+    _loadCachedBlocks('stats_list', (v) => _stats = v);
+    _loadCachedBlocks('audience_list', (v) => _audience = v);
+    _loadCachedBlocks('benefits_list', (v) => _benefits = v);
+    _loadCachedBlocks('schedule_list', (v) => _schedule = v);
     _fetchDynamicCmsData();
     _fetchCourses();
     _fetchTestimonials();
+    _fetchBlocks('STAT', 'stats_list', (v) => _stats = v);
+    _fetchBlocks('AUDIENCE', 'audience_list', (v) => _audience = v);
+    _fetchBlocks('BENEFIT', 'benefits_list', (v) => _benefits = v);
+    _fetchBlocks('SCHEDULE', 'schedule_list', (v) => _schedule = v);
   }
 
   void _applySettingsData(Map<String, dynamic> data) {
@@ -136,6 +177,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _mapImage = data['mapImageUrl'] ?? _mapImage;
     _mapLocationUrl = data['mapLocationUrl'] ?? _mapLocationUrl;
     _contactHeader = data['contactHeaderUz'] ?? _contactHeader;
+
+    _audienceTag = data['audienceTagUz'] ?? _audienceTag;
+    _audienceTitle = data['audienceTitleUz'] ?? _audienceTitle;
+    _benefitsTag = data['benefitsTagUz'] ?? _benefitsTag;
+    _benefitsTitle = data['benefitsTitleUz'] ?? _benefitsTitle;
+    _scheduleTag = data['scheduleTagUz'] ?? _scheduleTag;
+    _scheduleTitle = data['scheduleTitleUz'] ?? _scheduleTitle;
 
     _mainPhone = data['mainPhone'] ?? _mainPhone;
     _telegramUser = data['telegramUser'] ?? _telegramUser;
@@ -164,6 +212,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final cached = await _storage.getCache('testimonials_list');
     if (cached != null && mounted) {
       setState(() => _testimonials = (cached as List<dynamic>).cast<Map<String, dynamic>>());
+    }
+  }
+
+  Future<void> _loadCachedBlocks(String cacheKey, void Function(List<Map<String, dynamic>>) apply) async {
+    final cached = await _storage.getCache(cacheKey);
+    if (cached != null && mounted) {
+      setState(() => apply((cached as List<dynamic>).cast<Map<String, dynamic>>()));
     }
   }
 
@@ -196,6 +251,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Same "GET /content-blocks?section=X" pattern as testimonials above —
+  // stats/audience/benefits/schedule are the web landing page's remaining
+  // CMS-driven sections (mobile/landing/index.html), kept in sync here.
+  Future<void> _fetchBlocks(String section, String cacheKey, void Function(List<Map<String, dynamic>>) apply) async {
+    try {
+      final dio = Dio();
+      final response = await dio.get('${AppConstants.apiBaseUrl}/content-blocks', queryParameters: {'section': section});
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = (response.data['data'] as List<dynamic>).cast<Map<String, dynamic>>();
+        if (mounted) setState(() => apply(data));
+        _storage.saveCache(cacheKey, data);
+      }
+    } catch (_) {
+      // Offline or request failed — keep showing cached/empty state.
+    }
+  }
+
   Future<void> _fetchDynamicCmsData() async {
     try {
       final dio = Dio();
@@ -210,6 +282,25 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // Offline or request failed — keep showing cached/default content.
     }
+  }
+
+  // Matches the web landing page's "TAG" + title pattern used above the
+  // audience/benefits/schedule grids.
+  Widget _buildSectionHeader(bool isDark, String tag, String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tag,
+          style: const TextStyle(color: AppColors.primaryLime, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          title,
+          style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
   }
 
   Future<void> _makeCall(String phone) async {
@@ -450,6 +541,183 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+
+            // 1b. STATS — CMS "STAT" content blocks (titleUz=number, bodyUz=label),
+            // same numbers row shown on the web landing page.
+            if (_stats.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              // A fixed-aspect-ratio grid would clip whenever admin-edited
+              // label text runs long (as it did — see PR review); each card
+              // instead sizes to its own content, wrapped two-per-row.
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: _stats.map((s) {
+                  return SizedBox(
+                    width: (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            (s['titleUz'] as String?) ?? '',
+                            style: const TextStyle(color: AppColors.primaryLime, fontSize: 20, fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            (s['bodyUz'] as String?) ?? '',
+                            style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight, fontSize: 11, height: 1.2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+
+            // 1c. AUDIENCE — CMS "AUDIENCE" content blocks ("Kimlar uchun mos").
+            if (_audience.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              _buildSectionHeader(isDark, _audienceTag, _audienceTitle),
+              const SizedBox(height: 12),
+              ..._audience.map((a) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLime.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: FaIcon(_faIconFromName(a['iconName'] as String?, FontAwesomeIcons.circleCheck), color: AppColors.primaryLime, size: 16),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (a['titleUz'] as String?) ?? '',
+                              style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              (a['bodyUz'] as String?) ?? '',
+                              style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight, fontSize: 12, height: 1.35),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+
+            // 1d. BENEFITS — CMS "BENEFIT" content blocks, numbered 1..N like the website.
+            if (_benefits.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              _buildSectionHeader(isDark, _benefitsTag, _benefitsTitle),
+              const SizedBox(height: 12),
+              ..._benefits.asMap().entries.map((entry) {
+                final index = entry.key;
+                final b = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLime,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('${index + 1}', style: const TextStyle(color: AppColors.navy900, fontSize: 13, fontWeight: FontWeight.w900)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (b['titleUz'] as String?) ?? '',
+                              style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              (b['bodyUz'] as String?) ?? '',
+                              style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight, fontSize: 12, height: 1.35),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+
+            // 1e. SCHEDULE — CMS "SCHEDULE" content blocks ("Dars jadvali").
+            if (_schedule.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              _buildSectionHeader(isDark, _scheduleTag, _scheduleTitle),
+              const SizedBox(height: 12),
+              ..._schedule.map((sc) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.navy800 : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+                  ),
+                  child: Row(
+                    children: [
+                      FaIcon(_faIconFromName(sc['iconName'] as String?, FontAwesomeIcons.clock), color: AppColors.primaryLime, size: 16),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (sc['titleUz'] as String?) ?? '',
+                              style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              (sc['bodyUz'] as String?) ?? '',
+                              style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
 
             // 2. VIDEO TESTIMONIALS — admin-managed via the CMS "TESTIMONIAL"
             // content blocks (up to 20+ videos supported, same source that
