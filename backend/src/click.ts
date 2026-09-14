@@ -116,13 +116,19 @@ clickRouter.post('/prepare', async (req: Request, res: Response) => {
   if (!enrollment) {
     return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.USER_NOT_FOUND);
   }
-  if (enrollment.payments.length > 0 || enrollment.status === 'PAID') {
-    return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.ALREADY_PAID);
-  }
 
+  // Order matches Click's own reference implementation (click-integration-django):
+  // amount is checked before "already paid", and a negative incoming `error`
+  // (Click reporting its own cancellation) is checked last, after everything else.
   const expectedAmount = enrollment.course.discountPrice ?? enrollment.course.price;
   if (!amountsMatch(Number(amount), expectedAmount)) {
     return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.INCORRECT_AMOUNT);
+  }
+  if (enrollment.payments.length > 0 || enrollment.status === 'PAID') {
+    return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.ALREADY_PAID);
+  }
+  if (Number(body.error) < 0) {
+    return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.TRANSACTION_CANCELLED);
   }
 
   const trx = await prisma.clickTransaction.create({
@@ -176,6 +182,14 @@ clickRouter.post('/complete', async (req: Request, res: Response) => {
     return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.TRANSACTION_NOT_FOUND);
   }
 
+  // Order matches Click's own reference implementation (click-integration-django):
+  // amount, then already-paid, then a negative incoming `error` (Click
+  // reporting its own cancellation) last — and that case must echo back
+  // error -9, not 0, since -9 is what tells Click we recorded the cancellation.
+  const expectedAmount = trx.amount;
+  if (!amountsMatch(Number(amount), expectedAmount)) {
+    return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.INCORRECT_AMOUNT);
+  }
   if (trx.state === 1) {
     return reply(res, {
       click_trans_id: clickTransId,
@@ -183,21 +197,11 @@ clickRouter.post('/complete', async (req: Request, res: Response) => {
       merchant_confirm_id: trx.merchantPrepareId,
     }, ClickError.ALREADY_PAID);
   }
-  if (trx.state === -9) {
+  if (trx.state === -9 || Number(clickSideError) < 0) {
+    if (trx.state !== -9) {
+      await prisma.clickTransaction.update({ where: { id: trx.id }, data: { state: -9, cancelledAt: new Date() } });
+    }
     return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.TRANSACTION_CANCELLED);
-  }
-
-  // Click sends a negative `error` on this same endpoint to tell us the
-  // payment failed or was cancelled on their side (e.g. card declined) —
-  // this isn't us rejecting anything, just recording what they reported.
-  if (Number(clickSideError) < 0) {
-    await prisma.clickTransaction.update({ where: { id: trx.id }, data: { state: -9, cancelledAt: new Date() } });
-    return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.SUCCESS);
-  }
-
-  const expectedAmount = trx.amount;
-  if (!amountsMatch(Number(amount), expectedAmount)) {
-    return reply(res, { click_trans_id: clickTransId, merchant_trans_id: merchantTransId }, ClickError.INCORRECT_AMOUNT);
   }
 
   const enrollment = await prisma.enrollment.findUnique({ where: { id: trx.enrollmentId } });
