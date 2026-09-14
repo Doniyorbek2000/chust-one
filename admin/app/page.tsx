@@ -127,6 +127,7 @@ interface UserItem {
   avatarUrl?: string | null;
   createdAt: string;
   _count?: { enrollments: number };
+  enrollments?: { course: { titleUz: string } }[];
 }
 
 interface EnrollmentItem {
@@ -1331,7 +1332,19 @@ export default function AdminDashboard() {
                       </td>
                       <td className="p-4 font-mono text-[#C6F432]">{std.phoneNumber}</td>
                       <td className="p-4 text-slate-300">{std.city || '—'}</td>
-                      <td className="p-4">{std._count?.enrollments ?? 0} ta kurs</td>
+                      <td className="p-4">
+                        {std.enrollments && std.enrollments.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {std.enrollments.map((e, i) => (
+                              <span key={i} className="bg-[#1E3A5F] text-[#C6F432] px-2 py-0.5 rounded-lg text-[11px] font-semibold w-fit">
+                                {e.course.titleUz}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-500">—</span>
+                        )}
+                      </td>
                       <td className="p-4 text-slate-400">{new Date(std.createdAt).toLocaleDateString('uz-UZ')}</td>
                       <td className="p-4 text-right">
                         <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg text-[10px] font-bold">

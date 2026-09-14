@@ -12,6 +12,15 @@ import { paynetRouter } from './paynet';
 const prisma = new PrismaClient();
 const app = express();
 
+// The mobile login field pre-fills "+998 " (with a space), so a user who
+// types the rest right after it ends up with a phone number that has a
+// space where a freshly-registered account (or one created directly via the
+// API) wouldn't — strip all whitespace before every DB lookup/write so both
+// forms resolve to the same account.
+function normalizePhone(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/\s+/g, '') : '';
+}
+
 const allowedOrigins = (process.env.CORS_ORIGIN || 'https://chustone.uz')
   .split(',')
   .map((origin) => origin.trim())
@@ -91,7 +100,8 @@ const PUBLIC_USER_SELECT = {
 // -------------------------------------------------------------
 app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, phoneNumber, password, age, address, city } = req.body;
+    const { firstName, lastName, password, age, address, city } = req.body;
+    const phoneNumber = normalizePhone(req.body.phoneNumber);
     if (!firstName || !phoneNumber || !password) {
       return res.status(400).json({ success: false, error: 'Ism, telefon va parol talab qilinadi' });
     }
@@ -122,7 +132,8 @@ app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
 
 app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
   try {
-    const { phoneNumber, password } = req.body;
+    const phoneNumber = normalizePhone(req.body.phoneNumber);
+    const { password } = req.body;
     if (!phoneNumber || !password) {
       return res.status(400).json({ success: false, error: 'Telefon va parol talab qilinadi' });
     }
@@ -809,7 +820,11 @@ app.delete('/api/v1/admin/notifications/:id', requireAuth, requireAdmin, async (
 app.get('/api/v1/users', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
-      select: { ...PUBLIC_USER_SELECT, _count: { select: { enrollments: true } } },
+      select: {
+        ...PUBLIC_USER_SELECT,
+        _count: { select: { enrollments: true } },
+        enrollments: { select: { course: { select: { titleUz: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: users });
