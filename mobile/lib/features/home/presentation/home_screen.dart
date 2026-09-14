@@ -233,7 +233,13 @@ class _HomeScreenState extends State<HomeScreen> {
       videoId: videoId,
       autoPlay: true,
       params: const YoutubePlayerParams(
-        showFullscreenButton: true,
+        // These clips are vertical (Shorts-style), so YouTube's own
+        // fullscreen button (which rotates to landscape) doesn't fit the
+        // content and traps the user with no way back — its overlay covers
+        // our close (X) button above and neither Android nor iOS has a
+        // reliable way out of it in a bottom sheet. Disabled; the X button
+        // is the only, always-working way to exit.
+        showFullscreenButton: false,
         showVideoAnnotations: false,
         // Keeps YouTube's end-of-video suggestions limited to this same
         // channel instead of random unrelated videos — YouTube requires
@@ -279,7 +285,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 // bars on the sides.
                 AspectRatio(
                   aspectRatio: 9 / 16,
-                  child: YoutubePlayer(controller: controller),
+                  // Vertical-drag-to-fullscreen would re-open the same
+                  // no-way-out trap the disabled button above avoids.
+                  child: YoutubePlayer(controller: controller, enableFullScreenOnVerticalDrag: false),
                 ),
                 const SizedBox(height: 8),
               ],
