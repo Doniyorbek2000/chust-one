@@ -279,6 +279,24 @@ function statusBadge(status: string) {
   return map[status] || 'bg-slate-500/20 text-slate-300';
 }
 
+// Status values are shared with the backend/mobile app (e.g. `status === 'PAID'`
+// comparisons), so only the displayed text is localized here — the underlying
+// value passed to the API stays the original English/constant string.
+function statusLabel(status: string): string {
+  const map: Record<string, string> = {
+    NEW: "Yangi",
+    CONTACTED: "Bog'lanildi",
+    APPROVED: 'Tasdiqlangan',
+    TOLOV_KUTILMOQDA: "To'lov kutilmoqda",
+    PAID: "To'landi",
+    ENROLLED: "Ro'yxatga olindi",
+    REJECTED: 'Rad etilgan',
+    PENDING: 'Kutilmoqda',
+    CANCELLED: 'Bekor qilindi',
+  };
+  return map[status] || status;
+}
+
 // Native <input type="file"> button labels ("Choose File", "Выберите файл", etc.)
 // are rendered by the browser using the visitor's OS/browser language and can't
 // be overridden via CSS. This wraps a hidden input in our own styled label so
@@ -1393,7 +1411,7 @@ export default function AdminDashboard() {
                           onChange={(e) => handleEnrollmentStatusChange(enr.id, e.target.value)}
                           className={`px-2 py-1 rounded-lg font-bold text-[10px] border-0 ${statusBadge(enr.status)}`}
                         >
-                          {ENROLLMENT_STATUSES.map(s => <option key={s} value={s} className="bg-[#0A1D33] text-white">{s}</option>)}
+                          {ENROLLMENT_STATUSES.map(s => <option key={s} value={s} className="bg-[#0A1D33] text-white">{statusLabel(s)}</option>)}
                         </select>
                       </td>
                     </tr>
@@ -1438,7 +1456,7 @@ export default function AdminDashboard() {
                         ) : '—'}
                       </td>
                       <td className="p-4">
-                        <span className={`px-2.5 py-1 rounded-lg font-bold text-[10px] ${statusBadge(p.status)}`}>{p.status}</span>
+                        <span className={`px-2.5 py-1 rounded-lg font-bold text-[10px] ${statusBadge(p.status)}`}>{statusLabel(p.status)}</span>
                       </td>
                       <td className="p-4 text-right space-x-2">
                         {p.status === 'PENDING' && (
