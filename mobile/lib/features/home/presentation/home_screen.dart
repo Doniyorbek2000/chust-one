@@ -348,7 +348,9 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.only(top: 12),
+            // The close (X) button sat right against the status bar/notch —
+            // a bit more top space gives it room to breathe and be tappable.
+            padding: const EdgeInsets.only(top: 28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

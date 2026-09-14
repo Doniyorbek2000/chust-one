@@ -119,16 +119,24 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
                       ),
                     )
                   : Row(
+                      // A fixed `width` plus CMS-editable label text (e.g. the
+                      // home screen hero CTA) can be wider than the button —
+                      // Flexible+ellipsis truncates gracefully instead of
+                      // overflowing past the button's edge.
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          widget.label,
-                          style: TextStyle(
-                            color: _textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.2,
+                        Flexible(
+                          child: Text(
+                            widget.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: _textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.2,
+                            ),
                           ),
                         ),
                         if (widget.suffixIcon != null) ...[

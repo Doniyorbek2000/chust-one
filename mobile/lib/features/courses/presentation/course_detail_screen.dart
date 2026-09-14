@@ -597,12 +597,19 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                       elevation: 4,
                     ),
                     onPressed: _onEnrollPressed,
+                    // A long price (e.g. "2 000 000 so'm") leaves less room
+                    // for this button, and without Flexible the label+icon
+                    // Row overflows past its edge instead of shrinking.
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Kursga yozilish',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        Flexible(
+                          child: Text(
+                            'Kursga yozilish',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
                         ),
                         SizedBox(width: 6),
                         Icon(Icons.arrow_forward_ios_rounded, size: 14),
