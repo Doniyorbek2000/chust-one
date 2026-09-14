@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme/app_colors.dart';
@@ -40,6 +42,14 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/payment-upload',
+      // Apple Guideline 3.1.1: no real-money payment path may be reachable on
+      // iOS, so this route hard-redirects home even if reached directly
+      // (deep link, dev tools, future call site) rather than relying only on
+      // the enroll CTA being hidden.
+      redirect: (context, state) {
+        if (!kIsWeb && Platform.isIOS) return '/home';
+        return null;
+      },
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;
         return PaymentUploadScreen(
