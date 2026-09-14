@@ -1929,7 +1929,15 @@
       <p style="color:var(--text-muted); font-size:13px; line-height:1.7; margin-bottom:20px;">
         Paynet ilovasida "Chust One Academy" xizmatini toping, yuqoridagi to'lov kodini kiriting va to'lovni amalga oshiring. To'lov qabul qilingach, kursga avtomatik biriktirilasiz — qayta hech narsa yuklash shart emas.
       </p>
-      <button class="btn-lime" style="width:100%; justify-content:center; padding:14px;" onclick="closePaymentModal()">Tushundim</button>
+      <button class="btn-lime" style="width:100%; justify-content:center; padding:14px; margin-bottom:14px;" onclick="closePaymentModal()">Tushundim</button>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+        <div style="flex:1; height:1px; background:var(--border-color);"></div>
+        <span style="color:var(--text-muted); font-size:12px;">yoki</span>
+        <div style="flex:1; height:1px; background:var(--border-color);"></div>
+      </div>
+      <button class="btn-ios" style="width:100%; justify-content:center; padding:14px;" onclick="payWithClick()">
+        <i class="fa-solid fa-credit-card"></i> Click orqali to'lash
+      </button>
     </div>
   </div>
 
@@ -2082,6 +2090,28 @@
     function copyPaymentCode() {
       if (!lastEnrollment.id) return;
       navigator.clipboard.writeText(lastEnrollment.id).then(() => alert('Nusxalandi'));
+    }
+
+    // Click Button checkout — service_id/merchant_id/merchant_user_id are
+    // public identifiers Click's own checkout link format requires (not
+    // secrets; the SECRET_KEY used to verify payments never leaves the
+    // backend). transaction_param carries our Enrollment id back to us as
+    // merchant_trans_id in the Prepare/Complete callbacks (see backend/src/click.ts).
+    const CLICK_SERVICE_ID = '111898';
+    const CLICK_MERCHANT_ID = '64613';
+    const CLICK_MERCHANT_USER_ID = '91230';
+
+    function payWithClick() {
+      if (!lastEnrollment.id) return;
+      const params = new URLSearchParams({
+        service_id: CLICK_SERVICE_ID,
+        merchant_id: CLICK_MERCHANT_ID,
+        merchant_user_id: CLICK_MERCHANT_USER_ID,
+        amount: String(Math.round(lastEnrollment.amount)),
+        transaction_param: lastEnrollment.id,
+        return_url: window.location.origin + window.location.pathname,
+      });
+      window.location.href = `https://my.click.uz/services/pay?${params.toString()}`;
     }
 
     // ---------------- Course apply modal ----------------

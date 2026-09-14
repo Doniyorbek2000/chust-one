@@ -135,6 +135,7 @@ model Enrollment {
   updatedAt      DateTime  @updatedAt
   payments       Payment[]
   paynetTransactions PaynetTransaction[]
+  clickTransactions  ClickTransaction[]
 }
 
 model Payment {
@@ -169,6 +170,26 @@ model PaynetTransaction {
   createdAt     DateTime   @default(now())
   performedAt   DateTime?
   cancelledAt   DateTime?
+}
+
+// One row per Click transaction, created at Prepare and finalized at Complete.
+// merchantPrepareId is the numeric id Click requires back from Prepare and
+// then echoes into Complete's sign_string, so it must be stable and unique —
+// an autoincrement column serves that the same way providerTrnId does for
+// Paynet above.
+model ClickTransaction {
+  id                String     @id @default(uuid())
+  clickTransId      String     @unique
+  merchantPrepareId Int        @unique @default(autoincrement())
+  enrollmentId      String
+  enrollment        Enrollment @relation(fields: [enrollmentId], references: [id])
+  paymentId         String?    @unique
+  amount            Float
+  state             Int        @default(0) // 0 = prepared, 1 = completed, -9 = cancelled
+  createdAt         DateTime   @default(now())
+  preparedAt        DateTime?
+  performedAt       DateTime?
+  cancelledAt       DateTime?
 }
 
 model News {
