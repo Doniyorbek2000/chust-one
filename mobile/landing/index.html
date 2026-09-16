@@ -1373,6 +1373,131 @@
         padding: 24px 18px;
       }
     }
+
+    /* -------------------------------------------------------------
+       BACKGROUND MUSIC WIDGET
+       ------------------------------------------------------------- */
+    .music-widget {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 1300;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--navy-800);
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      padding: 8px 16px 8px 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .music-toggle-btn {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--lime-primary);
+      color: var(--navy-900);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .music-toggle-btn:hover {
+      transform: scale(1.08);
+      background: var(--lime-hover);
+    }
+
+    .music-toggle-btn.playing i {
+      animation: musicPulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes musicPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    /* Invites the visitor to tap while audible autoplay is blocked by the browser */
+    .music-widget.needs-tap .music-toggle-btn {
+      animation: musicInvite 1.8s ease-in-out infinite;
+    }
+
+    @keyframes musicInvite {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(198, 244, 50, 0.55); }
+      50% { box-shadow: 0 0 0 12px rgba(198, 244, 50, 0); }
+    }
+
+    .music-volume-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .music-mute-btn {
+      background: none;
+      border: none;
+      color: var(--text-white);
+      font-size: 15px;
+      cursor: pointer;
+      width: 20px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .music-volume-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 80px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border-color);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .music-volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--lime-primary);
+      cursor: pointer;
+      border: none;
+    }
+
+    .music-volume-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--lime-primary);
+      cursor: pointer;
+      border: none;
+    }
+
+    @media (max-width: 480px) {
+      .music-widget {
+        right: 14px;
+        bottom: 14px;
+        padding: 6px 12px 6px 6px;
+        gap: 8px;
+      }
+      .music-toggle-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+      }
+      .music-volume-slider {
+        width: 56px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1998,7 +2123,129 @@
     </div>
   </footer>
 
+  <!-- Background Music Player -->
+  <audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
+  <div class="music-widget" id="musicWidget">
+    <button class="music-toggle-btn" id="musicToggleBtn" type="button" aria-label="Musiqani ijro etish" aria-pressed="false">
+      <i class="fa-solid fa-play" id="musicToggleIcon"></i>
+    </button>
+    <div class="music-volume-wrap">
+      <button class="music-mute-btn" id="musicMuteBtn" type="button" aria-label="Ovozni o'chirish" aria-pressed="false">
+        <i class="fa-solid fa-volume-high" id="musicMuteIcon"></i>
+      </button>
+      <input type="range" class="music-volume-slider" id="musicVolumeSlider" min="0" max="100" value="60" aria-label="Ovoz balandligi">
+    </div>
+  </div>
+
   <script>
+    // ---------------- Background Music ----------------
+    (function () {
+      const audio = document.getElementById('bgMusic');
+      const toggleBtn = document.getElementById('musicToggleBtn');
+      const toggleIcon = document.getElementById('musicToggleIcon');
+      const muteBtn = document.getElementById('musicMuteBtn');
+      const muteIcon = document.getElementById('musicMuteIcon');
+      const volumeSlider = document.getElementById('musicVolumeSlider');
+      const widget = document.getElementById('musicWidget');
+      if (!audio || !toggleBtn) return;
+
+      const STORAGE_KEY = 'chustone_music_pref';
+      let volume = 0.6;
+      let muted = false;
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && typeof saved.volume === 'number') volume = saved.volume;
+        if (saved && typeof saved.muted === 'boolean') muted = saved.muted;
+      } catch (e) {}
+
+      audio.volume = volume;
+      audio.muted = muted;
+      volumeSlider.value = String(Math.round(volume * 100));
+
+      function savePrefs() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume: volume, muted: muted })); } catch (e) {}
+      }
+
+      function updateToggleUI(isPlaying) {
+        toggleBtn.classList.toggle('playing', isPlaying);
+        toggleBtn.setAttribute('aria-pressed', String(isPlaying));
+        toggleIcon.className = isPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+        toggleBtn.setAttribute('aria-label', isPlaying ? 'Musiqani pauza qilish' : 'Musiqani ijro etish');
+        if (widget) widget.classList.toggle('needs-tap', !isPlaying);
+      }
+
+      function updateVolumeUI() {
+        const isSilent = muted || volume === 0;
+        muteIcon.className = isSilent
+          ? 'fa-solid fa-volume-xmark'
+          : (volume < 0.5 ? 'fa-solid fa-volume-low' : 'fa-solid fa-volume-high');
+        muteBtn.setAttribute('aria-label', isSilent ? "Ovozni yoqish" : "Ovozni o'chirish");
+        muteBtn.setAttribute('aria-pressed', String(isSilent));
+      }
+
+      // Browsers only allow audible playback to start from a real user
+      // gesture (click/tap/key press) — there is no client-side way around
+      // this on any site. So we attempt play() immediately on load, and the
+      // instant that fails (the normal case for a first-time visit), we
+      // arm the very first tap/click/keypress ANYWHERE on the page to start
+      // it right then — that's as close to "automatic" as browsers permit.
+      let resumeHandlersAttached = false;
+      function attachResumeOnInteraction() {
+        if (resumeHandlersAttached) return;
+        resumeHandlersAttached = true;
+        const resume = function () {
+          audio.play().then(function () { updateToggleUI(true); }).catch(function () {});
+        };
+        document.addEventListener('pointerdown', resume, { once: true, capture: true });
+        document.addEventListener('touchstart', resume, { once: true, capture: true, passive: true });
+        document.addEventListener('keydown', resume, { once: true, capture: true });
+      }
+
+      function startOnLoad() {
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.then(function () {
+            updateToggleUI(true);
+          }).catch(function () {
+            updateToggleUI(false);
+            attachResumeOnInteraction();
+          });
+        } else {
+          attachResumeOnInteraction();
+        }
+      }
+
+      toggleBtn.addEventListener('click', function () {
+        if (audio.paused) {
+          audio.play().then(function () { updateToggleUI(true); }).catch(function () {});
+        } else {
+          audio.pause();
+        }
+      });
+
+      muteBtn.addEventListener('click', function () {
+        muted = !muted;
+        audio.muted = muted;
+        updateVolumeUI();
+        savePrefs();
+      });
+
+      volumeSlider.addEventListener('input', function () {
+        volume = Number(volumeSlider.value) / 100;
+        muted = volume === 0;
+        audio.muted = muted;
+        audio.volume = volume;
+        updateVolumeUI();
+        savePrefs();
+      });
+
+      audio.addEventListener('pause', function () { updateToggleUI(false); });
+      audio.addEventListener('play', function () { updateToggleUI(true); });
+
+      updateVolumeUI();
+      startOnLoad();
+    })();
+
     // ---------------- Body scroll lock helper ----------------
     let lockCount = 0;
     function lockScroll() {

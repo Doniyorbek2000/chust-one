@@ -9,7 +9,9 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/academy_logo.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/widgets/music_widget.dart';
 import '../../../core/storage/storage_service.dart';
+import '../../../core/services/background_music_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -340,6 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
         privacyEnhancedMode: true,
       ),
     );
+    BackgroundMusicService.instance.pauseForForegroundVideo();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -388,7 +391,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
-    ).whenComplete(() => controller.close());
+    ).whenComplete(() {
+      controller.close();
+      BackgroundMusicService.instance.resumeAfterForegroundVideo();
+    });
   }
 
   @override
@@ -423,7 +429,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return Scaffold(
+    return Stack(
+      children: [
+        Scaffold(
       backgroundColor: isDark ? AppColors.navy900 : AppColors.backgroundLight,
       appBar: AppBar(
         backgroundColor: isDark ? AppColors.navy900 : AppColors.surfaceLight,
@@ -1115,6 +1123,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+        ),
+        const MusicWidget(),
+      ],
     );
   }
 
