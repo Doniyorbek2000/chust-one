@@ -1,6 +1,9 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -12,6 +15,8 @@ import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/music_widget.dart';
 import '../../../core/storage/storage_service.dart';
 import '../../../core/services/background_music_service.dart';
+import '../../../core/utils/version_utils.dart';
+import '../../../core/widgets/update_required_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,6 +46,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String _instagramUser = AppConstants.instagramUser;
 
   bool _isMaintenance = false;
+
+  // Force-update gate (CMS-controlled): see `_updateRequired` getter below.
+  bool _forceUpdate = false;
+  String _minAppVersion = '1.0.0';
+  String _androidStoreUrl = 'https://play.google.com/store/apps/details?id=uz.chustone.academy';
+  String _iosStoreUrl = '';
+  String _currentAppVersion = '';
 
   // Dynamic section headers (CMS "AppSetting") for the content-block grids below
   String _audienceTag = 'KIMLAR UCHUN';
@@ -164,6 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchBlocks('AUDIENCE', 'audience_list', (v) => _audience = v);
     _fetchBlocks('BENEFIT', 'benefits_list', (v) => _benefits = v);
     _fetchBlocks('SCHEDULE', 'schedule_list', (v) => _schedule = v);
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _currentAppVersion = info.version);
+    });
   }
 
   void _applySettingsData(Map<String, dynamic> data) {
@@ -192,7 +207,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _telegramContact = data['telegramContact'] ?? _telegramContact;
     _instagramUser = data['instagramUser'] ?? _instagramUser;
     _isMaintenance = data['isMaintenance'] ?? false;
+
+    _forceUpdate = data['forceUpdate'] ?? false;
+    _minAppVersion = data['minAppVersion'] ?? _minAppVersion;
+    _androidStoreUrl = data['androidStoreUrl'] ?? _androidStoreUrl;
+    _iosStoreUrl = data['iosStoreUrl'] ?? _iosStoreUrl;
   }
+
+  bool get _updateRequired =>
+      _forceUpdate && _currentAppVersion.isNotEmpty && isAppVersionOutdated(_currentAppVersion, _minAppVersion);
+
+  String get _storeUrlForPlatform => (!kIsWeb && Platform.isIOS) ? _iosStoreUrl : _androidStoreUrl;
 
   // Shows the last-known-good data instantly (works offline) while the live
   // fetch below refreshes it in the background.
@@ -400,6 +425,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_updateRequired) {
+      return UpdateRequiredScreen(storeUrl: _storeUrlForPlatform);
+    }
 
     if (_isMaintenance) {
       return const Scaffold(

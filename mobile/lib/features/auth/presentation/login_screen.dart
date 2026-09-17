@@ -99,7 +99,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
+
+                // Back Button (only shown when there's a screen to return to)
+                if (context.canPop())
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      onPressed: () => context.pop(),
+                      icon: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 18,
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: isDark ? AppColors.navy800 : Colors.white,
+                        padding: const EdgeInsets.all(10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 8),
 
                 // Top Logo
                 const AcademyLogo(size: 64, showText: true),

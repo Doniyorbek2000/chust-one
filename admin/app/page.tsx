@@ -70,6 +70,8 @@ interface AppSettings {
   isMaintenance: boolean;
   minAppVersion: string;
   forceUpdate: boolean;
+  androidStoreUrl: string;
+  iosStoreUrl: string;
   termsAndPrivacyUrl: string;
 }
 
@@ -216,6 +218,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   isMaintenance: false,
   minAppVersion: '1.0.0',
   forceUpdate: false,
+  androidStoreUrl: 'https://play.google.com/store/apps/details?id=uz.chustone.academy',
+  iosStoreUrl: '',
   termsAndPrivacyUrl: 'https://chustone.uz/privacy',
 };
 
@@ -1122,6 +1126,55 @@ export default function AdminDashboard() {
                     className="w-4 h-4"
                   />
                   <label className="text-xs font-semibold text-slate-300">Texnik profilaktika rejimi (ilovani vaqtincha o'chirish)</label>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#0A1D33] border border-[#1E3A5F] rounded-2xl p-6">
+              <h2 className="text-lg font-bold mb-4 text-[#C6F432] flex items-center space-x-2">
+                <span>📲</span>
+                <span>Ilova Versiyasi (Majburiy Yangilash)</span>
+              </h2>
+              <p className="text-[11px] text-slate-400 mb-4">
+                "Majburiy yangilashni yoqish" belgilansa, ko'rsatilgandan pastroq versiyadagi ilova ochilganda foydalanuvchiga yopib bo'lmaydigan "Ilovani yangilang" ekrani chiqadi.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Minimal versiya (masalan: 1.0.0)</label>
+                  <input
+                    type="text"
+                    value={settings.minAppVersion}
+                    onChange={e => setSettings({ ...settings, minAppVersion: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div className="flex items-center space-x-3 pt-6">
+                  <input
+                    type="checkbox"
+                    checked={settings.forceUpdate}
+                    onChange={e => setSettings({ ...settings, forceUpdate: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <label className="text-xs font-semibold text-slate-300">Majburiy yangilashni yoqish</label>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Play Market havolasi</label>
+                  <input
+                    type="text"
+                    value={settings.androidStoreUrl}
+                    onChange={e => setSettings({ ...settings, androidStoreUrl: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">App Store havolasi</label>
+                  <input
+                    type="text"
+                    placeholder="https://apps.apple.com/app/id..."
+                    value={settings.iosStoreUrl}
+                    onChange={e => setSettings({ ...settings, iosStoreUrl: e.target.value })}
+                    className="w-full bg-[#041426] border border-[#1E3A5F] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C6F432]"
+                  />
                 </div>
               </div>
             </div>

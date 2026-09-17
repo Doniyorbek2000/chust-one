@@ -308,6 +308,8 @@ model AppSetting {
   isMaintenance           Boolean  @default(false)
   minAppVersion           String   @default("1.0.0")
   forceUpdate             Boolean  @default(false)
+  androidStoreUrl         String   @default("https://play.google.com/store/apps/details?id=uz.chustone.academy")
+  iosStoreUrl             String   @default("")
   termsAndPrivacyUrl      String   @default("https://chustone.uz/privacy")
   updatedAt               DateTime @updatedAt
 }

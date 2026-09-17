@@ -1,7 +1,7 @@
 name: chust_one_academy
 description: "Chust One Academy production mobile app for Android & iOS"
 publish_to: 'none'
-version: 1.0.0+15
+version: 1.0.0+16
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -26,6 +26,7 @@ dependencies:
   youtube_player_iframe: ^6.0.2
   font_awesome_flutter: ^11.0.0
   audioplayers: ^6.8.1
+  package_info_plus: ^10.2.1
 
 dev_dependencies:
   flutter_test:

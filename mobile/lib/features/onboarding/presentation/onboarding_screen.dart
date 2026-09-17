@@ -1,12 +1,17 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/academy_logo.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/widgets/update_required_screen.dart';
 import '../../../core/storage/storage_service.dart';
+import '../../../core/utils/version_utils.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -22,6 +27,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _ctaText = 'Boshlash';
   String _secondaryText = 'Kirish';
 
+  // Force-update gate (CMS-controlled): see `_updateRequired` getter below.
+  bool _forceUpdate = false;
+  String _minAppVersion = '1.0.0';
+  String _androidStoreUrl = 'https://play.google.com/store/apps/details?id=uz.chustone.academy';
+  String _iosStoreUrl = '';
+  String _currentAppVersion = '';
+
   final _storage = StorageService();
 
   @override
@@ -29,6 +41,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.initState();
     _loadCachedData();
     _fetchDynamicOnboardingData();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _currentAppVersion = info.version);
+    });
   }
 
   void _applyData(Map<String, dynamic> data) {
@@ -37,7 +52,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _imageUrl = data['onboardingImageUrl'] ?? _imageUrl;
     _ctaText = data['onboardingCtaTextUz'] ?? _ctaText;
     _secondaryText = data['onboardingSecondaryUz'] ?? _secondaryText;
+
+    _forceUpdate = data['forceUpdate'] ?? false;
+    _minAppVersion = data['minAppVersion'] ?? _minAppVersion;
+    _androidStoreUrl = data['androidStoreUrl'] ?? _androidStoreUrl;
+    _iosStoreUrl = data['iosStoreUrl'] ?? _iosStoreUrl;
   }
+
+  bool get _updateRequired =>
+      _forceUpdate && _currentAppVersion.isNotEmpty && isAppVersionOutdated(_currentAppVersion, _minAppVersion);
+
+  String get _storeUrlForPlatform => (!kIsWeb && Platform.isIOS) ? _iosStoreUrl : _androidStoreUrl;
 
   Future<void> _loadCachedData() async {
     final cached = await _storage.getCache('app_settings');
@@ -65,6 +90,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_updateRequired) {
+      return UpdateRequiredScreen(storeUrl: _storeUrlForPlatform);
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.navy900 : AppColors.backgroundLight,
