@@ -7,6 +7,10 @@ import '../../../app/providers/auth_provider.dart';
 import '../../../core/widgets/academy_logo.dart';
 import '../../../core/widgets/custom_button.dart';
 
+// Step 1 of the phone/SMS-code auth flow: collect the phone number and send
+// the 4-digit code. Step 2 (otp_screen) verifies it, then either logs the
+// user straight in (existing account) or routes to register_details_screen
+// (new account) — see docs in otp_screen.dart for the full flow.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -15,20 +19,13 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  bool _isSignUpMode = false;
   final _formKey = GlobalKey<FormState>();
-
-  final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController(text: '+998 ');
-  final _passwordController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _addressController = TextEditingController();
 
-  bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorText;
 
-  Future<void> _submitAuth() async {
+  Future<void> _sendCode() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() {
@@ -36,40 +33,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorText = null;
     });
 
+    final phone = _phoneController.text.trim();
+
     try {
       final apiClient = ref.read(apiClientProvider);
-      final phone = _phoneController.text.trim();
-      final password = _passwordController.text;
-
-      Response response;
-      if (_isSignUpMode) {
-        final nameParts = _fullNameController.text.trim().split(' ');
-        response = await apiClient.post('/auth/register', data: {
-          'firstName': nameParts.first,
-          'lastName': nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '',
-          'phoneNumber': phone,
-          'password': password,
-          'age': _ageController.text.trim().isNotEmpty ? int.tryParse(_ageController.text.trim()) : null,
-          'address': _addressController.text.trim().isNotEmpty ? _addressController.text.trim() : null,
-        });
-      } else {
-        response = await apiClient.post('/auth/login', data: {
-          'phoneNumber': phone,
-          'password': password,
-        });
-      }
-
-      final data = response.data['data'];
-      await ref.read(authProvider.notifier).setSession(data['token'] as String, data['user'] as Map<String, dynamic>);
+      await apiClient.post('/auth/otp/request', data: {'phoneNumber': phone});
 
       if (!mounted) return;
       setState(() => _isLoading = false);
-
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/home');
-      }
+      context.push('/auth/otp', extra: {'phoneNumber': phone});
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -101,7 +73,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 4),
 
-                // Back Button (only shown when there's a screen to return to)
                 if (context.canPop())
                   Align(
                     alignment: Alignment.centerLeft,
@@ -125,79 +96,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 8),
 
-                // Top Logo
                 const AcademyLogo(size: 64, showText: true),
 
                 const SizedBox(height: 24),
 
-                // Mode Switcher (Kirish / Ro'yxatdan o'tish)
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.navy800 : const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _isSignUpMode = false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: !_isSignUpMode
-                                  ? (isDark ? AppColors.primaryLime : const Color(0xFF041426))
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              'Kirish',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: !_isSignUpMode
-                                    ? (isDark ? AppColors.navy900 : Colors.white)
-                                    : (isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B)),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _isSignUpMode = true),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: _isSignUpMode
-                                  ? (isDark ? AppColors.primaryLime : const Color(0xFF041426))
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              'Ro\'yxatdan o\'tish',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: _isSignUpMode
-                                    ? (isDark ? AppColors.navy900 : Colors.white)
-                                    : (isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B)),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Form Title & Subtitle
                 Text(
-                  _isSignUpMode ? 'Ro\'yxatdan o\'tish' : 'Tizimga kirish',
+                  'Tizimga kirish',
                   style: TextStyle(
                     color: isDark ? Colors.white : AppColors.textPrimaryLight,
                     fontSize: 24,
@@ -206,9 +110,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _isSignUpMode
-                      ? 'Yangi hisob yarating va kurslarga yoziling!'
-                      : 'Chust One Academy platformasiga xush kelibsiz!',
+                  'Telefon raqamingizni kiriting, biz sizga tasdiqlash kodini SMS orqali yuboramiz.',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B),
                     fontSize: 13,
@@ -235,35 +138,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ],
 
-                // Full Name (Only in SignUp Mode)
-                if (_isSignUpMode) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Ism va Familiyangiz',
-                      style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _fullNameController,
-                    style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Sardorbek Karimov',
-                      prefixIcon: const Icon(Icons.person_outline, color: AppColors.primaryLime),
-                      filled: true,
-                      fillColor: isDark ? AppColors.navy800 : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                      ),
-                    ),
-                    validator: (val) => _isSignUpMode && (val == null || val.trim().isEmpty) ? 'Ismingizni kiriting' : null,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Phone Input
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -275,8 +149,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  autofillHints: const [AutofillHints.telephoneNumber],
                   style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 14),
                   decoration: InputDecoration(
+                    hintText: '+998 90 123 45 67',
                     prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.primaryLime),
                     filled: true,
                     fillColor: isDark ? AppColors.navy800 : Colors.white,
@@ -285,122 +161,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
                     ),
                   ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Telefon raqamni kiriting' : null,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Age & Address (Only in SignUp Mode)
-                if (_isSignUpMode) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Yoshingiz',
-                      style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _ageController,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Masalan: 18',
-                      prefixIcon: const Icon(Icons.cake_outlined, color: AppColors.primaryLime),
-                      filled: true,
-                      fillColor: isDark ? AppColors.navy800 : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Manzilingiz',
-                      style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _addressController,
-                    style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Shahar / Tuman, ko\'cha',
-                      prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primaryLime),
-                      filled: true,
-                      fillColor: isDark ? AppColors.navy800 : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Password Input
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Parolingiz',
-                    style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 14),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primaryLime),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: AppColors.textSecondaryDark,
-                      ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    filled: true,
-                    fillColor: isDark ? AppColors.navy800 : Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
-                    ),
-                  ),
-                  validator: (val) => val == null || val.length < 4 ? 'Parolni kiriting (kamida 4 belgi)' : null,
+                  validator: (val) {
+                    final digits = (val ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+                    if (digits.length < 9) return 'Telefon raqamni to\'liq kiriting';
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 24),
 
-                // Submit Button
                 CustomButton(
-                  label: _isSignUpMode ? 'Ro\'yxatdan o\'tish' : 'Kirish',
+                  label: 'SMS kod yuborish',
                   isLoading: _isLoading,
-                  onPressed: _submitAuth,
+                  onPressed: _sendCode,
                 ),
 
                 const SizedBox(height: 16),
 
-                // Mode Toggle Footer Link
-                TextButton(
-                  onPressed: () => setState(() => _isSignUpMode = !_isSignUpMode),
-                  child: Text(
-                    _isSignUpMode
-                        ? 'Akkauntingiz bormi? Tizimga kiring'
-                        : 'Akkauntingiz yo\'qmi? Ro\'yxatdan o\'ting',
-                    style: const TextStyle(
-                      color: AppColors.primaryLime,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-
-                // Guest Mode Button
                 TextButton(
                   onPressed: () => context.go('/home'),
                   child: Text(

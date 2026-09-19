@@ -26,6 +26,23 @@ export function generateToken(user: AuthUser): string {
   return jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
 }
 
+// Short-lived token proving a phone number was just OTP-verified, handed to
+// the client between "code confirmed" and "registration form submitted" so
+// the server doesn't need to keep server-side session state for that gap.
+const REGISTRATION_TOKEN_EXPIRES_IN = '15m';
+
+export function generateRegistrationToken(phoneNumber: string): string {
+  return jwt.sign({ phoneNumber, purpose: 'REGISTRATION' }, JWT_SECRET, { expiresIn: REGISTRATION_TOKEN_EXPIRES_IN });
+}
+
+export function verifyRegistrationToken(token: string): string {
+  const decoded = jwt.verify(token, JWT_SECRET) as { phoneNumber?: string; purpose?: string };
+  if (decoded.purpose !== 'REGISTRATION' || !decoded.phoneNumber) {
+    throw new Error('Invalid registration token');
+  }
+  return decoded.phoneNumber;
+}
+
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {

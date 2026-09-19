@@ -3,12 +3,19 @@
 Base URL: `/api/v1`
 
 ## 1. Auth Module (`/auth`)
-- `POST /auth/register` — Register student with name, phone (+998), password, city, interested courses.
-- `POST /auth/login` — Login with phone/email and password.
-- `POST /auth/verify-otp` — Verify SMS OTP code.
-- `POST /auth/refresh` — Refresh access token using refresh token.
+Mobile app uses phone + SMS-code only (no password):
+- `POST /auth/otp/request` — Send a 4-digit code (via Eskiz.uz) to a phone number. Uzbek numbers only; limited to 1 per 60s and 5 per hour per phone (plus a global hourly cap).
+- `POST /auth/otp/verify` — Verify the code. Returns `{status: 'logged_in', token, user}` for an existing account, or `{status: 'registration_required', registrationToken}` for a new phone.
+- `POST /auth/otp/complete-registration` — Finish signup for a new phone using the `registrationToken` plus `firstName`, `lastName`, `birthDate` (YYYY-MM-DD), `address`. Returns `{token, user}`.
+
+Admin panel still uses password login:
+- `POST /auth/register` — Register with name, phone (+998), password, city.
+- `POST /auth/login` — Login with phone and password.
 - `GET /auth/me` — Retrieve current authenticated user profile.
-- `POST /auth/logout` — Invalidate user tokens.
+- `PATCH /auth/profile` — Update profile fields (name, city, age, address, birthDate, avatarUrl).
+- `DELETE /auth/account` — Self-service account deletion; confirm with `password` or a fresh `otpCode`.
+
+A user's birthday automatically triggers an in-app notification (see Notifications) — no client call needed.
 
 ## 2. Courses & Categories (`/courses`, `/categories`)
 - `GET /categories` — List active course categories.

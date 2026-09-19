@@ -11,6 +11,7 @@ class AppUser {
   final String? city;
   final int? age;
   final String? address;
+  final String? birthDate;
   final String role;
 
   AppUser({
@@ -22,6 +23,7 @@ class AppUser {
     this.city,
     this.age,
     this.address,
+    this.birthDate,
     this.role = 'STUDENT',
   });
 
@@ -37,6 +39,7 @@ class AppUser {
       city: json['city'] as String?,
       age: json['age'] as int?,
       address: json['address'] as String?,
+      birthDate: json['birthDate'] as String?,
       role: json['role'] as String? ?? 'STUDENT',
     );
   }
@@ -50,6 +53,7 @@ class AppUser {
         'city': city,
         'age': age,
         'address': address,
+        'birthDate': birthDate,
         'role': role,
       };
 }

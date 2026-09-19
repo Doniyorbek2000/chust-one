@@ -5,10 +5,12 @@ import path from 'path';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
-import { generateToken, requireAuth, requireAdmin, optionalAuth } from './middleware/auth';
+import { generateToken, generateRegistrationToken, verifyRegistrationToken, requireAuth, requireAdmin, optionalAuth } from './middleware/auth';
 import { upload, UPLOAD_DIR } from './middleware/upload';
 import { paynetRouter } from './paynet';
 import { clickRouter } from './click';
+import { sendSms, buildOtpMessage } from './sms';
+import { scheduleBirthdayGreetings } from './birthdayGreetings';
 
 const prisma = new PrismaClient();
 const app = express();
@@ -75,6 +77,7 @@ async function initSeed() {
   }
 }
 initSeed();
+scheduleBirthdayGreetings(prisma);
 
 // Health Check
 app.get('/health', (req: Request, res: Response) => {
@@ -92,6 +95,7 @@ const PUBLIC_USER_SELECT = {
   city: true,
   age: true,
   address: true,
+  birthDate: true,
   isVerified: true,
   createdAt: true,
 };
@@ -154,6 +158,174 @@ app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
   }
 });
 
+// -------------------------------------------------------------
+// PHONE OTP ENDPOINTS (mobile app: SMS-code login/registration)
+// -------------------------------------------------------------
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+// Every code is a paid SMS, so cap how many one phone — and the whole
+// service — can trigger per hour (SMS-pumping / bill-shock protection).
+const OTP_PER_PHONE_HOURLY_LIMIT = 5;
+const OTP_GLOBAL_HOURLY_LIMIT = Number(process.env.OTP_GLOBAL_HOURLY_LIMIT) || 1000;
+const OTP_RETENTION_MS = 24 * 60 * 60 * 1000;
+
+// App Store / Play reviewers can't receive an SMS, so one designated phone
+// gets a fixed code and no SMS is sent. Inactive unless both vars are set.
+const OTP_DEMO_PHONE = normalizePhone(process.env.OTP_DEMO_PHONE);
+const OTP_DEMO_CODE = (process.env.OTP_DEMO_CODE || '').trim();
+
+function generateOtpCode(): string {
+  return String(crypto.randomInt(1000, 10000));
+}
+
+// SMS goes to Uzbek mobile numbers only; accept "+998XXXXXXXXX", "998XXXXXXXXX"
+// or the bare 9-digit national number (whitespace/dashes ignored) and always
+// return the "+998XXXXXXXXX" form so every OTP row and account lookup agrees.
+function toUzPhone(value: unknown): string | null {
+  const digits = normalizePhone(value).replace(/\D/g, '');
+  if (digits.length === 9) return `+998${digits}`;
+  if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
+  return null;
+}
+
+setInterval(() => {
+  prisma.otpCode
+    .deleteMany({ where: { createdAt: { lt: new Date(Date.now() - OTP_RETENTION_MS) } } })
+    .catch((err) => console.error('OTP cleanup failed:', err));
+}, 60 * 60 * 1000);
+
+app.post('/api/v1/auth/otp/request', async (req: Request, res: Response) => {
+  try {
+    const phoneNumber = toUzPhone(req.body.phoneNumber);
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, error: 'Telefon raqamni to\'g\'ri kiriting (+998 XX XXX XX XX)' });
+    }
+
+    const isDemo = !!OTP_DEMO_PHONE && !!OTP_DEMO_CODE && phoneNumber === OTP_DEMO_PHONE;
+
+    if (!isDemo) {
+      const lastCode = await prisma.otpCode.findFirst({
+        where: { phoneNumber, purpose: 'AUTH' },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (lastCode && Date.now() - lastCode.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+        const waitSeconds = Math.ceil((OTP_RESEND_COOLDOWN_MS - (Date.now() - lastCode.createdAt.getTime())) / 1000);
+        return res.status(429).json({ success: false, error: `Qayta yuborish uchun ${waitSeconds} soniya kuting`, data: { waitSeconds } });
+      }
+
+      const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const [phoneCount, globalCount] = await Promise.all([
+        prisma.otpCode.count({ where: { phoneNumber, purpose: 'AUTH', createdAt: { gte: hourAgo } } }),
+        prisma.otpCode.count({ where: { createdAt: { gte: hourAgo } } }),
+      ]);
+      if (phoneCount >= OTP_PER_PHONE_HOURLY_LIMIT) {
+        return res.status(429).json({ success: false, error: 'Juda ko\'p urinish. Bir soatdan so\'ng qaytadan urinib ko\'ring' });
+      }
+      if (globalCount >= OTP_GLOBAL_HOURLY_LIMIT) {
+        console.error(`OTP global hourly limit (${OTP_GLOBAL_HOURLY_LIMIT}) reached — possible SMS abuse`);
+        return res.status(429).json({ success: false, error: 'Xizmat vaqtincha band. Birozdan so\'ng qaytadan urinib ko\'ring' });
+      }
+    }
+
+    const code = isDemo ? OTP_DEMO_CODE : generateOtpCode();
+    const otp = await prisma.otpCode.create({
+      data: { phoneNumber, code, purpose: 'AUTH', expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+    });
+    if (!isDemo) {
+      try {
+        await sendSms(phoneNumber, buildOtpMessage(code));
+      } catch (smsErr) {
+        // Never surface the SMS provider's raw error (auth details, moderation
+        // status, etc.) to the client — log it for us, show a generic message.
+        // Drop the unsent code so it doesn't burn the user's cooldown/hourly cap.
+        console.error('SMS send failed:', smsErr);
+        await prisma.otpCode.delete({ where: { id: otp.id } }).catch(() => {});
+        return res.status(502).json({ success: false, error: 'SMS yuborishda xatolik yuz berdi. Birozdan so\'ng qaytadan urinib ko\'ring' });
+      }
+    }
+
+    res.json({ success: true, data: { cooldownSeconds: OTP_RESEND_COOLDOWN_MS / 1000 } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.post('/api/v1/auth/otp/verify', async (req: Request, res: Response) => {
+  try {
+    const phoneNumber = toUzPhone(req.body.phoneNumber);
+    const code = typeof req.body.code === 'string' ? req.body.code.trim() : '';
+    if (!phoneNumber || !code) {
+      return res.status(400).json({ success: false, error: 'Telefon raqam va kod talab qilinadi' });
+    }
+
+    const otp = await prisma.otpCode.findFirst({
+      where: { phoneNumber, purpose: 'AUTH', consumed: false },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!otp || otp.expiresAt < new Date()) {
+      return res.status(400).json({ success: false, error: 'Kod muddati o\'tgan. Qaytadan so\'rang' });
+    }
+    if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({ success: false, error: 'Urinishlar soni tugadi. Qaytadan kod so\'rang' });
+    }
+    if (otp.code !== code) {
+      await prisma.otpCode.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
+      return res.status(400).json({ success: false, error: 'Kod noto\'g\'ri' });
+    }
+
+    await prisma.otpCode.update({ where: { id: otp.id }, data: { consumed: true } });
+
+    const user = await prisma.user.findUnique({ where: { phoneNumber } });
+    if (user) {
+      const token = generateToken({ id: user.id, role: user.role });
+      const { passwordHash, ...publicUser } = user;
+      return res.json({ success: true, data: { status: 'logged_in', token, user: publicUser } });
+    }
+
+    const registrationToken = generateRegistrationToken(phoneNumber);
+    res.json({ success: true, data: { status: 'registration_required', registrationToken } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+app.post('/api/v1/auth/otp/complete-registration', async (req: Request, res: Response) => {
+  try {
+    const { registrationToken, firstName, lastName, address } = req.body;
+    if (!registrationToken || !firstName || !lastName || !address || !req.body.birthDate) {
+      return res.status(400).json({ success: false, error: 'Barcha maydonlarni to\'ldiring' });
+    }
+
+    let phoneNumber: string;
+    try {
+      phoneNumber = verifyRegistrationToken(registrationToken);
+    } catch {
+      return res.status(401).json({ success: false, error: 'Tasdiqlash muddati tugagan. Qaytadan kod oling' });
+    }
+
+    const birthDate = new Date(req.body.birthDate);
+    if (Number.isNaN(birthDate.getTime())) {
+      return res.status(400).json({ success: false, error: 'Tug\'ilgan sana noto\'g\'ri' });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { phoneNumber } });
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'Bu telefon raqam bilan foydalanuvchi allaqachon ro\'yxatdan o\'tgan' });
+    }
+
+    const passwordHash = await bcrypt.hash(crypto.randomUUID(), 10);
+    const user = await prisma.user.create({
+      data: { firstName, lastName, phoneNumber, passwordHash, birthDate, address, role: 'STUDENT' },
+      select: PUBLIC_USER_SELECT,
+    });
+    const token = generateToken({ id: user.id, role: user.role });
+    res.json({ success: true, data: { status: 'logged_in', token, user } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
 app.get('/api/v1/auth/me', requireAuth, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: PUBLIC_USER_SELECT });
@@ -166,7 +338,7 @@ app.get('/api/v1/auth/me', requireAuth, async (req: Request, res: Response) => {
 
 app.patch('/api/v1/auth/profile', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, city, age, address, avatarUrl } = req.body;
+    const { firstName, lastName, city, age, address, avatarUrl, birthDate } = req.body;
     const user = await prisma.user.update({
       where: { id: req.user!.id },
       data: {
@@ -175,6 +347,7 @@ app.patch('/api/v1/auth/profile', requireAuth, async (req: Request, res: Respons
         ...(city !== undefined && { city }),
         ...(age !== undefined && { age: age === null ? null : Number(age) }),
         ...(address !== undefined && { address }),
+        ...(birthDate !== undefined && { birthDate: birthDate === null ? null : new Date(birthDate) }),
         ...(avatarUrl !== undefined && { avatarUrl }),
       },
       select: PUBLIC_USER_SELECT,
@@ -191,16 +364,31 @@ app.patch('/api/v1/auth/profile', requireAuth, async (req: Request, res: Respons
 // history stays intact for accounting/reporting.
 app.delete('/api/v1/auth/account', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { password } = req.body;
-    if (!password) {
-      return res.status(400).json({ success: false, error: 'Hisobni o\'chirish uchun joriy parolni kiriting' });
+    const { password, otpCode } = req.body;
+    if (!password && !otpCode) {
+      return res.status(400).json({ success: false, error: 'Hisobni o\'chirish uchun parol yoki SMS kod kerak' });
     }
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
     if (!user) return res.status(404).json({ success: false, error: 'Foydalanuvchi topilmadi' });
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      return res.status(401).json({ success: false, error: 'Parol noto\'g\'ri' });
+    // Accounts created through the SMS-code flow have no password the user
+    // knows (a random unusable hash), so deletion can also be confirmed with
+    // a freshly requested OTP code sent to the account's own phone number.
+    let verified = false;
+    if (password) {
+      verified = await bcrypt.compare(password, user.passwordHash);
+    } else {
+      const otp = await prisma.otpCode.findFirst({
+        where: { phoneNumber: toUzPhone(user.phoneNumber) ?? user.phoneNumber, purpose: 'AUTH', consumed: false },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (otp && otp.expiresAt > new Date() && otp.code === String(otpCode).trim()) {
+        await prisma.otpCode.update({ where: { id: otp.id }, data: { consumed: true } });
+        verified = true;
+      }
+    }
+    if (!verified) {
+      return res.status(401).json({ success: false, error: 'Parol yoki SMS kod noto\'g\'ri' });
     }
 
     const unusablePasswordHash = await bcrypt.hash(crypto.randomUUID(), 10);

@@ -491,10 +491,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showDeleteAccountDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final passwordController = TextEditingController();
+    final codeController = TextEditingController();
+    final phoneNumber = ref.read(authProvider).user?.phoneNumber ?? '';
     showDialog(
       context: context,
       builder: (ctx) {
+        // Accounts created via the SMS-code flow have no password the user
+        // knows, so deletion is confirmed with a fresh OTP sent to their own
+        // phone number instead of a password prompt.
+        bool codeSent = false;
         bool isSubmitting = false;
         String? errorText;
         return StatefulBuilder(
@@ -510,17 +515,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   style: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B), fontSize: 13),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight),
-                  decoration: InputDecoration(
-                    labelText: 'Joriy parolingiz',
-                    labelStyle: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B)),
-                    errorText: errorText,
-                    border: const OutlineInputBorder(),
+                if (!codeSent)
+                  Text(
+                    'Tasdiqlash uchun $phoneNumber raqamiga SMS kod yuboriladi.',
+                    style: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B), fontSize: 13),
+                  )
+                else
+                  TextField(
+                    controller: codeController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 4,
+                    style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight, fontSize: 20, letterSpacing: 8),
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      labelText: 'SMS kod',
+                      counterText: '',
+                      labelStyle: TextStyle(color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B)),
+                      errorText: errorText,
+                      border: const OutlineInputBorder(),
+                    ),
                   ),
-                ),
               ],
             ),
             actions: [
@@ -533,8 +547,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onPressed: isSubmitting
                     ? null
                     : () async {
-                        if (passwordController.text.isEmpty) {
-                          setState2(() => errorText = 'Parolni kiriting');
+                        final apiClient = ref.read(apiClientProvider);
+                        if (!codeSent) {
+                          setState2(() => isSubmitting = true);
+                          try {
+                            await apiClient.post('/auth/otp/request', data: {'phoneNumber': phoneNumber});
+                            setState2(() {
+                              codeSent = true;
+                              isSubmitting = false;
+                            });
+                          } on dio.DioException catch (e) {
+                            setState2(() {
+                              isSubmitting = false;
+                              errorText = e.response?.data?['error'] as String? ?? 'Xatolik yuz berdi';
+                            });
+                          }
+                          return;
+                        }
+                        if (codeController.text.trim().length != 4) {
+                          setState2(() => errorText = 'Kodni to\'liq kiriting');
                           return;
                         }
                         setState2(() {
@@ -542,8 +573,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           errorText = null;
                         });
                         try {
-                          final apiClient = ref.read(apiClientProvider);
-                          await apiClient.delete('/auth/account', data: {'password': passwordController.text});
+                          await apiClient.delete('/auth/account', data: {'otpCode': codeController.text.trim()});
                           await ref.read(authProvider.notifier).logout();
                           if (ctx.mounted) Navigator.pop(ctx);
                           if (!mounted) return;
@@ -560,7 +590,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                 child: isSubmitting
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Hisobni o\'chirish', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    : Text(codeSent ? 'Hisobni o\'chirish' : 'SMS kod yuborish', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

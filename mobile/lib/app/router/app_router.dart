@@ -6,6 +6,8 @@ import '../../app/theme/app_colors.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/otp_screen.dart';
+import '../../features/auth/presentation/register_details_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/courses/presentation/courses_screen.dart';
 import '../../features/courses/presentation/course_detail_screen.dart';
@@ -32,6 +34,23 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/auth/login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/auth/otp',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return OtpScreen(phoneNumber: extra['phoneNumber'] as String? ?? '');
+      },
+    ),
+    GoRoute(
+      path: '/auth/register-details',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return RegisterDetailsScreen(
+          phoneNumber: extra['phoneNumber'] as String? ?? '',
+          registrationToken: extra['registrationToken'] as String? ?? '',
+        );
+      },
     ),
     GoRoute(
       path: '/course-detail/:id',

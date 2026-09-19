@@ -8,25 +8,44 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  firstName     String
-  lastName      String
-  phoneNumber   String         @unique
-  email         String?        @unique
-  passwordHash  String
-  role          String         @default("STUDENT")
-  avatarUrl     String?
-  city          String?
-  age           Int?
-  address       String?
-  isVerified    Boolean        @default(true)
-  deletedAt     DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  enrollments   Enrollment[]
-  payments      Payment[]
-  favorites     Favorite[]
-  notifications Notification[]
+  id                     String         @id @default(uuid())
+  firstName              String
+  lastName               String
+  phoneNumber            String         @unique
+  email                  String?        @unique
+  passwordHash           String
+  role                   String         @default("STUDENT")
+  avatarUrl              String?
+  city                   String?
+  age                    Int?
+  address                String?
+  birthDate              DateTime?
+  lastBirthdayGreetedYear Int?
+  isVerified             Boolean        @default(true)
+  deletedAt              DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  enrollments            Enrollment[]
+  payments               Payment[]
+  favorites              Favorite[]
+  notifications          Notification[]
+}
+
+// Short-lived 4-digit codes used for phone verification on both login and
+// registration (mobile app). A phone can have several rows over time; only
+// the newest non-consumed, non-expired one is valid — older ones are left in
+// place for audit/rate-limiting rather than deleted.
+model OtpCode {
+  id          String   @id @default(uuid())
+  phoneNumber String
+  code        String
+  purpose     String   @default("AUTH") // AUTH (login/register) | DELETE_ACCOUNT
+  attempts    Int      @default(0)
+  consumed    Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([phoneNumber])
 }
 
 model CourseCategory {
